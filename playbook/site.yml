@@ -1,10 +1,159 @@
 ---
-  - name: Print os facts
-    hosts: all
-    tasks:
-      - name: Print OS
-        debug:
-          msg: "{{ ansible_distribution }}"
-      - name: Print fact
-        debug:
-          msg: "{{ some_fact }}"
+# Play containers deploying
+- name: Deploy containers
+  hosts: local
+  handlers:
+  tasks:
+    - name: Create docker network
+      community.docker.docker_network:
+        name: my_net
+      tags:
+        - docker_network
+
+    - name: Create Centos image
+      community.docker.docker_image:
+        name: my_centos
+        tag: "7"
+        build:
+          path: ../docker/Centos/
+          rm: true
+        source: build
+        state: present
+      tags:
+        - run_clickhouse_container
+
+    - name: Create Debian image
+      community.docker.docker_image:
+        name: my_debian
+        tag: "11"
+        build:
+          path: ../docker/Debian/
+          rm: true
+        source: build
+        state: present
+      tags:
+        - run_vector_container
+
+    - name: Run Centos container
+      community.docker.docker_container:
+        name: clickhouse-01
+        image: my_centos:7
+        networks:
+          - name: my_net
+        published_ports:
+          - 0.0.0.0:8123:8123
+          - 0.0.0.0:9000:9000
+          - 0.0.0.0:9004:9004
+          - 0.0.0.0:9005:9005
+          - 0.0.0.0:9009:9009
+        state: started
+        detach: true
+        tty: true
+        interactive: true
+      tags:
+        - run_clickhouse_container
+
+    - name: Run Debian container
+      community.docker.docker_container:
+        name: vector-01
+        image: my_debian:11
+        networks:
+          - name: my_net
+        state: started
+        detach: true
+        tty: true
+        interactive: true
+      tags:
+        - run_vector_container
+
+# Play clickhouse installation
+- name: Install Clickhouse
+  hosts: clickhouse
+  handlers:
+    - name: Start clickhouse server
+      become: true
+      ansible.builtin.command:
+        cmd: /etc/init.d/clickhouse-server start && sleep 5
+      tags:
+        - start_clickhouse
+
+  tasks:
+    - name: Get clickhouse distrib
+      block:
+        - name: Get clickhouse distrib
+          ansible.builtin.get_url:
+            url: "https://packages.clickhouse.com/rpm/stable/{{ item }}-{{ clickhouse_version }}.noarch.rpm"
+            dest: "./{{ item }}-{{ clickhouse_version }}.rpm"
+            mode: '0776'
+          with_items: "{{ clickhouse_packages }}"
+          tags:
+            - get_clickhouse
+      rescue:
+        - name: Get clickhouse distrib (common-static package)
+          ansible.builtin.get_url:
+            url: "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-{{ clickhouse_version }}.x86_64.rpm"
+            dest: "./clickhouse-common-static-{{ clickhouse_version }}.rpm"
+            mode: '0776'
+          tags:
+            - get_clickhouse
+
+    - name: Install clickhouse packages
+      become: true
+      ansible.builtin.yum:
+        name:
+          - yum-utils
+          - clickhouse-common-static-{{ clickhouse_version }}.rpm
+          - clickhouse-client-{{ clickhouse_version }}.rpm
+          - clickhouse-server-{{ clickhouse_version }}.rpm
+      tags:
+        - install_clickhouse
+      notify: Start clickhouse server
+
+    - name: Generate users config
+      ansible.builtin.template:
+        src: users.j2
+        dest: "/etc/clickhouse-server/users.d/users.xml"
+        owner: "clickhouse"
+        group: "clickhouse"
+        mode: "ug=r,o-r"
+      become: true
+      tags:
+        - configure_clickhouse
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Create database
+      ansible.builtin.command: "clickhouse-client --user vector --password vector -q 'create database if not exists logs;'"
+      register: create_db
+      failed_when: create_db.rc != 0 and create_db.rc !=82
+      changed_when: create_db.rc == 0
+      tags:
+        - configure_clickhouse
+
+# Play vector installation
+- name: Install Vector
+  hosts: vector
+  handlers:
+  tasks:
+    - name: Mkdir for vector
+      ansible.builtin.file:
+        path: /vector
+        state: directory
+        mode: '0776'
+      tags:
+        - mkdir_vector
+
+    - name: Get vector distrib
+      ansible.builtin.get_url:
+        url: "https://packages.timber.io/vector/{{ vector_version }}/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
+        dest: "/vector/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
+        mode: '0776'
+      tags:
+        - get_vector
+
+    - name: Install vector package
+      ansible.builtin.apt:
+        deb: "/vector/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
+      tags:
+        - install_vector

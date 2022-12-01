@@ -1,0 +1,30 @@
+---
+# a version of vector we need
+vector_version: "0.25.1"
+# package we need for vector installation
+vector_package: "vector"
+# x86_64 OS
+os_architecture: "amd64"
+#Vector configuration
+vector_config:
+  sources:
+    sample_file:
+      type: file
+      read_from: beginning
+      include:
+        - /var/logs/dpkg.log
+  sinks:
+    to_clickhouse:
+      type: clickhouse
+      inputs:
+        # we take 'sample_file' from 'sources' above
+        - sample_file
+      endpoints: http://172.18.0.2:8123
+      databases: logs
+      table: vector_host_log
+      auth:
+        strategy: basic
+        user: vector
+        password: vector
+      skin_unknown_fields: null
+      compression: gzip

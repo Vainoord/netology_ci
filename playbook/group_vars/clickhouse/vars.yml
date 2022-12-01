@@ -1,0 +1,52 @@
+---
+# a version of clickhouse we need
+clickhouse_version: "22.3.3.44"
+
+# packages we need for clickhouse installation
+clickhouse_packages:
+  - clickhouse-client
+  - clickhouse-server
+  - clickhouse-common-static
+
+# specify networks from which users can connect to the Clickhouse
+clickhouse_networks_default:
+  - "::1"
+  - "127.0.0.1"
+
+clickhouse_networks_custom:
+  - "::0"
+
+# set users for the Clickhouse configuration
+clickhouse_users_default:
+  - { name: "default", password: "", networks: "{{ clickhouse_networks_default }}", profile: "default", quota: "default", comment: "Default user for login if user not defined" }
+  - { name: "readonly", password: "", networks: "{{ clickhouse_networks_default }}", profile: "readonly", quota: "default", comment: "Example of user with readonly access" }
+
+clickhouse_users_custom:
+  - { name: "vector", password: "vector", networks: "{{ clickhouse_networks_custom }}", profile: "vector", quota: "default", comment: "User for access from Vector host" }
+
+clickhouse_profiles_default:
+ default:
+   max_memory_usage: 1000000000
+   use_uncompressed_cache: 0
+   load_balancing: random
+   max_partitions_per_insert_block: 100
+ readonly:
+   readonly: 0
+
+clickhouse_profiles_custom:
+  default:
+    max_memory_usage: 1000000000
+    use_uncompressed_cache: 0
+    load_balancing: random
+    max_partitions_per_insert_block: 100
+  readonly:
+    readonly: 0
+
+clickhouse_quotas_intervals_default:
+  - { duration: 3600, queries: 0, errors: 0, result_rows: 0, read_rows: 0, execution_time: 0 }
+
+clickhouse_quotas_default:
+  - { name: "default", intervals: "{{ clickhouse_quotas_intervals_default }}", comment: "Default quota - count only" }
+
+clickhouse_quotas_custom:
+  - { name: "vector", intervals: "{{ clickhouse_quotas_intervals_default }}", comment: "vector quota without limiting usage" }

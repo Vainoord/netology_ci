@@ -1,0 +1,7 @@
+---
+ansible_python_interpreter: /usr/bin/python3
+docker_network: "my_network"
+centos_image: "my_centos:7"
+debian_image: "my_debian:11"
+centos_container: "clickhouse-01"
+debian_container: "vector-01"

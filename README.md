@@ -1,416 +1,353 @@
-# Домашнее задание к занятию "1. Введение в Ansible"
+# Домашнее задание к занятию "2. Работа с Playbook"
 
 ## Подготовка к выполнению
 
-1. Установите ansible версии 2.10 или выше.
-2. Создайте свой собственный публичный репозиторий на github с произвольным именем.
+1. (Необязательно) Изучите, что такое [clickhouse](https://www.youtube.com/watch?v=fjTNS2zkeBs) и [vector](https://www.youtube.com/watch?v=CgEhyffisLY)
+2. Создайте свой собственный (или используйте старый) публичный репозиторий на github с произвольным именем.
 3. Скачайте [playbook](./playbook/) из репозитория с домашним заданием и перенесите его в свой репозиторий.
+4. Подготовьте хосты в соответствии с группами из предподготовленного playbook.
 
+    ### Ответ
+
+    Подготовлены docker контейнеры с centos7 под clickhouse и debian11 под vector
 ## Основная часть
 
-1. Попробуйте запустить playbook на окружении из `test.yml`, зафиксируйте какое значение имеет факт `some_fact` для указанного хоста при выполнении playbook'a.
-
-   ### Ответ
-
-   ```{bash}
-   TASK [Print OS] ***************************************************************************************************
-   ok: [localhost] => {
-       "msg": "MacOSX"
-   }
-   
-   TASK [Print fact] *************************************************************************************************
-   ok: [localhost] => {
-       "msg": 12
-   }
-   ```
-
-2. Найдите файл с переменными (group_vars) в котором задаётся найденное в первом пункте значение и поменяйте его на 'all default fact'.
-
-   ### Ответ
-
-   ```{bash}
-   16:29:58 | ~/netology/netology_ci [main]
-   \-bash (vainoord) $> cat playbook/group_vars/all/examp.yml
-   ---
-    some_fact: all default fact
-   ```
-
-3. Воспользуйтесь подготовленным (используется `docker`) или создайте собственное окружение для проведения дальнейших испытаний.
-
-   ### Ответ
-
-   Созданы контейнеры по образам ubuntu и centos7:
-
-   ```{bash}
-   18:37:57 | ~/netology/netology_ci [main]
-   \(vainoord) $> docker ps
-   CONTAINER ID   IMAGE            COMMAND       CREATED          STATUS          PORTS     NAMES
-   971b0c2d2afa   ubuntu:latest    "bash"        24 minutes ago   Up 24 minutes             ubuntu
-   77f32023f228   centos:centos7   "/bin/bash"   36 minutes ago   Up 33 minutes             centos7
-   ```
-
-4. Проведите запуск playbook на окружении из `prod.yml`. Зафиксируйте полученные значения `some_fact` для каждого из `managed host`.
-
-   ### Ответ
-
-   ```{bash}
-   PLAY [Print os facts] *******************************************************************************************************************************************************
-
-   TASK [Gathering Facts] ******************************************************************************************************************************************************
-   ok: [ubuntu]
-   ok: [centos7]
-
-   TASK [Print OS] *************************************************************************************************************************************************************
-   ok: [centos7] => {
-       "msg": "CentOS"
-   }
-   ok: [ubuntu] => {
-       "msg": "Ubuntu"
-   }
-
-   TASK [Print fact] ***********************************************************************************************************************************************************
-   ok: [centos7] => {
-       "msg": "el"
-   }
-   ok: [ubuntu] => {
-       "msg": "deb"
-   }
-
-   PLAY RECAP ******************************************************************************************************************************************************************
-   centos7                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-   ubuntu                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0 
-   ```
-
-5. Добавьте факты в `group_vars` каждой из групп хостов так, чтобы для `some_fact` получились следующие значения: для `deb` - 'deb default fact', для `el` - 'el default fact'.
-
-6.  Повторите запуск playbook на окружении `prod.yml`. Убедитесь, что выдаются корректные значения для всех хостов.
+1. Приготовьте свой собственный inventory файл `prod.yml`.
 
     ### Ответ
 
-    Сообщение в `facts` обновлены:
-
-    ```{bash}
-    19:47:48 | ~/netology/netology_ci [main]
-    \(vainoord) $> ansible-playbook playbook/site.yml -i playbook/inventory/prod.yml
-
-    PLAY [Print os facts] *******************************************************************************************************************************************************
-
-    TASK [Gathering Facts] ******************************************************************************************************************************************************
-    ok: [ubuntu]
-    ok: [centos7]
-
-    TASK [Print OS] *************************************************************************************************************************************************************
-    ok: [centos7] => {
-        "msg": "CentOS"
-    }
-    ok: [ubuntu] => {
-        "msg": "Ubuntu"
-    }
-
-    TASK [Print fact] ***********************************************************************************************************************************************************
-    ok: [centos7] => {
-        "msg": "el default fact"
-    }
-    ok: [ubuntu] => {
-        "msg": "deb default fact"
-    }
-
-    PLAY RECAP ******************************************************************************************************************************************************************
-    centos7                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    ubuntu                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0 
-    ```
-
-7. При помощи `ansible-vault` зашифруйте факты в `group_vars/deb` и `group_vars/el` с паролем `netology`.
-8. Запустите playbook на окружении `prod.yml`. При запуске `ansible` должен запросить у вас пароль. Убедитесь в работоспособности.
-
-    ### Ответ
-
-    Факты зашифрованы:
-
-    ```{bash}
-    07:40:17 | ~/netology/netology_ci [main]
-    \(vainoord) $> ansible-vault encrypt playbook/group_vars/deb/examp.yml 
-    New Vault password: 
-    Confirm New Vault password: 
-    Encryption successful
-
-    07:41:01 | ~/netology/netology_ci [main]
-    \(vainoord) $> ansible-vault encrypt playbook/group_vars/el/examp.yml 
-    New Vault password: 
-    Confirm New Vault password: 
-    Encryption successful
-
-    07:44:30 | ~/netology/netology_ci [main]
-    \(vainoord) $> ansible-playbook playbook/site.yml -i playbook/inventory/prod.yml --ask-vault-pass
-    Vault password: 
-
-    PLAY [Print os facts] ************************************************************************************************************
-
-    TASK [Gathering Facts] ***********************************************************************************************************
-    ok: [ubuntu]
-    ok: [centos7]
-
-    TASK [Print OS] ******************************************************************************************************************
-    ok: [centos7] => {
-        "msg": "CentOS"
-    }
-    ok: [ubuntu] => {
-        "msg": "Ubuntu"
-    }
-
-    TASK [Print fact] ****************************************************************************************************************
-    ok: [centos7] => {
-        "msg": "el default fact"
-    }
-    ok: [ubuntu] => {
-        "msg": "deb default fact"
-    }
-
-    PLAY RECAP ***********************************************************************************************************************
-    centos7                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    ubuntu                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    ```
-
-9. Посмотрите при помощи `ansible-doc` список плагинов для подключения. Выберите подходящий для работы на `control node`.
-
-    ### Ответ
-
-    Список модулей для `connection`. Нам подойдет модуль `local`:
-
-    ```{bash}
-    15:15:22 | ~/netology/netology_ci [main]
-    \(vainoord) $> ansible-doc -l -t connection
-    ansible.netcommon.grpc         Provides a persistent connection using the gRPC protocol                                      
-    ansible.netcommon.httpapi      Use httpapi to run command on network appliances                                              
-    ansible.netcommon.libssh       Run tasks using libssh for ssh connection                                                     
-    ansible.netcommon.napalm       Provides persistent connection using NAPALM                                                   
-    ansible.netcommon.netconf      Provides a persistent connection using the netconf protocol                                   
-    ansible.netcommon.network_cli  Use network_cli to run command on network appliances                                          
-    ansible.netcommon.persistent   Use a persistent unix socket for connection                                                   
-    community.aws.aws_ssm          execute via AWS Systems Manager                                                               
-    community.docker.docker        Run tasks in docker containers                                                                
-    community.docker.docker_api    Run tasks in docker containers                                                                
-    community.docker.nsenter       execute on host running controller container                                                  
-    community.general.chroot       Interact with local chroot                                                                    
-    community.general.funcd        Use funcd to connect to target                                                                
-    community.general.iocage       Run tasks in iocage jails                                                                     
-    community.general.jail         Run tasks in jails                                                                            
-    community.general.lxc          Run tasks in lxc containers via lxc python library                                            
-    community.general.lxd          Run tasks in lxc containers via lxc CLI                                                       
-    community.general.qubes        Interact with an existing QubesOS AppVM                                                       
-    community.general.saltstack    Allow ansible to piggyback on salt minions                                                    
-    community.general.zone         Run tasks in a zone instance                                                                  
-    community.libvirt.libvirt_lxc  Run tasks in lxc containers via libvirt                                                       
-    community.libvirt.libvirt_qemu Run tasks on libvirt/qemu virtual machines                                                    
-    community.okd.oc               Execute tasks in pods running on OpenShift                                                    
-    community.vmware.vmware_tools  Execute tasks inside a VM via VMware Tools                                                    
-    community.zabbix.httpapi       Use httpapi to run command on network appliances                                              
-    containers.podman.buildah      Interact with an existing buildah container                                                   
-    containers.podman.podman       Interact with an existing podman container                                                    
-    kubernetes.core.kubectl        Execute tasks in pods running on Kubernetes                                                   
-    local                          execute on controller                                                                         
-    paramiko_ssh                   Run tasks via python ssh (paramiko)                                                           
-    psrp                           Run tasks over Microsoft PowerShell Remoting Protocol                                         
-    ssh                            connect via SSH client binary                                                                 
-    winrm                          Run tasks over Microsoft's WinRM 
-    ```
-
-10. В `prod.yml` добавьте новую группу хостов с именем  `local`, в ней разместите localhost с необходимым типом подключения.
-
-    ### Ответ
+    Готово. Использую docker-контейнеры в качестве тестовой среды:
 
     ```{yml}
     ---
-    el:
-        hosts:
-        centos7:
-            ansible_connection: docker
-    deb:
-        hosts:
-        ubuntu:
-            ansible_connection: docker
-    local:
-        hosts:
-        localhost:
-            ansible_connection: local
+    # clickhouse host (in docker container)
+    clickhouse:
+    hosts:
+        clickhouse-01:
+        ansible_connection: docker
+    # vector host (in docker container)
+    vector:
+    hosts:
+        vector-01:
+        ansible_connection: docker
     ```
 
-11. Запустите playbook на окружении `prod.yml`. При запуске `ansible` должен запросить у вас пароль. Убедитесь что факты `some_fact` для каждого из хостов определены из верных `group_vars`.
+2. Допишите playbook: нужно сделать ещё один play, который устанавливает и настраивает [vector](https://vector.dev).
+3. При создании tasks рекомендую использовать модули: `get_url`, `template`, `unarchive`, `file`.
+4. Tasks должны: скачать нужной версии дистрибутив, выполнить распаковку в выбранную директорию, установить vector.
 
     ### Ответ
+
+    Поменял collection в handler. Вместо `ansible.builtin.service` поставил `ansible.builtin.command`, т.к. в контейнере с Centos7 не работал перезапуск службы через `systemctl`. Также написал play с развертывание контейнеров. В итоге play с запуском контейнеров работает, play с установкой и настройкой clickhouse не работает. При добавлении файла `users.xml` в директорию clickhouse `/etc/clickhouse-server/users.d/` сервер не запускается. Файл `user.xml` генерится через шаблон, который был взят отсюда: https://github.com/AlexeySetevoi/ansible-clickhouse
+
+    Содержимое site.yml:
+
+    ```{yml}
+    ---
+    # Play containers deploying
+    - name: Deploy containers
+    hosts: local
+    handlers:
+    tasks:
+        - name: Create docker network
+        community.docker.docker_network:
+            name: my_net
+        tags:
+            - docker_network
+
+        - name: Create Centos image
+        community.docker.docker_image:
+            name: my_centos
+            tag: "7"
+            build:
+            path: ../docker/Centos/
+            rm: true
+            source: build
+            state: present
+        tags:
+            - run_clickhouse_container
+
+        - name: Create Debian image
+        community.docker.docker_image:
+            name: my_debian
+            tag: "11"
+            build:
+            path: ../docker/Debian/
+            rm: true
+            source: build
+            state: present
+        tags:
+            - run_vector_container
+
+        - name: Run Centos container
+        community.docker.docker_container:
+            name: clickhouse-01
+            image: my_centos:7
+            networks:
+            - name: my_net
+            published_ports:
+            - 0.0.0.0:8123:8123
+            - 0.0.0.0:9000:9000
+            - 0.0.0.0:9004:9004
+            - 0.0.0.0:9005:9005
+            - 0.0.0.0:9009:9009
+            state: started
+            detach: true
+            tty: true
+            interactive: true
+        tags:
+            - run_clickhouse_container
+
+        - name: Run Debian container
+        community.docker.docker_container:
+            name: vector-01
+            image: my_debian:11
+            networks:
+            - name: my_net
+            state: started
+            detach: true
+            tty: true
+            interactive: true
+        tags:
+            - run_vector_container
+
+    # Play clickhouse installation
+    - name: Install Clickhouse
+    hosts: clickhouse
+    handlers:
+        - name: Start clickhouse server
+        become: true
+        ansible.builtin.command:
+            cmd: /etc/init.d/clickhouse-server start && sleep 5
+        tags:
+            - start_clickhouse
+
+    tasks:
+        - name: Get clickhouse distrib
+        block:
+            - name: Get clickhouse distrib
+            ansible.builtin.get_url:
+                url: "https://packages.clickhouse.com/rpm/stable/{{ item }}-{{ clickhouse_version }}.noarch.rpm"
+                dest: "./{{ item }}-{{ clickhouse_version }}.rpm"
+                mode: '0776'
+            with_items: "{{ clickhouse_packages }}"
+            tags:
+                - get_clickhouse
+        rescue:
+            - name: Get clickhouse distrib (common-static package)
+            ansible.builtin.get_url:
+                url: "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-{{ clickhouse_version }}.x86_64.rpm"
+                dest: "./clickhouse-common-static-{{ clickhouse_version }}.rpm"
+                mode: '0776'
+            tags:
+                - get_clickhouse
+
+        - name: Install clickhouse packages
+        become: true
+        ansible.builtin.yum:
+            name:
+            - yum-utils
+            - clickhouse-common-static-{{ clickhouse_version }}.rpm
+            - clickhouse-client-{{ clickhouse_version }}.rpm
+            - clickhouse-server-{{ clickhouse_version }}.rpm
+        tags:
+            - install_clickhouse
+        notify: Start clickhouse server
+
+        - name: Generate users config
+        ansible.builtin.template:
+            src: users.j2
+            dest: "/etc/clickhouse-server/users.d/users.xml"
+            owner: "clickhouse"
+            group: "clickhouse"
+            mode: "ug=r,o-r"
+        become: true
+        tags:
+            - configure_clickhouse
+
+        - name: Flush handlers
+        ansible.builtin.meta: flush_handlers
+
+        - name: Create database
+        ansible.builtin.command: "clickhouse-client --user vector --password vector -q 'create database if not exists logs;'"
+        register: create_db
+        failed_when: create_db.rc != 0 and create_db.rc !=82
+        changed_when: create_db.rc == 0
+        tags:
+            - configure_clickhouse
+
+    # Play vector installation
+    - name: Install Vector
+    hosts: vector
+    handlers:
+    tasks:
+        - name: Mkdir for vector
+        ansible.builtin.file:
+            path: /vector
+            state: directory
+            mode: '0776'
+        tags:
+            - mkdir_vector
+
+        - name: Get vector distrib
+        ansible.builtin.get_url:
+            url: "https://packages.timber.io/vector/{{ vector_version }}/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
+            dest: "/vector/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
+            mode: '0776'
+        tags:
+            - get_vector
+
+        - name: Install vector package
+        ansible.builtin.apt:
+            deb: "/vector/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
+        tags:
+            - install_vector
+        ```
+
+        Содержимое vars.yml для Vector:
+
+        ```{yml}
+        ---
+        # a version of vector we need
+        vector_version: "0.25.1"
+        # package we need for vector installation
+        vector_package: "vector"
+        # x86_64 OS
+        os_architecture: "amd64"
+        #Vector configuration
+        vector_config:
+        sources:
+            sample_file:
+            type: file
+            read_from: beginning
+            include:
+                - /var/logs/dpkg.log
+        sinks:
+            to_clickhouse:
+            type: clickhouse
+            inputs:
+                # we take 'sample_file' from 'sources' above
+                - sample_file
+            endpoints: http://172.18.0.2:8123
+            databases: logs
+            table: vector_host_log
+            auth:
+                strategy: basic
+                user: vector
+                password: vector
+            skin_unknown_fields: null
+            compression: gzip
+    ```
+
+5. Запустите `ansible-lint site.yml` и исправьте ошибки, если они есть.
+
+    ### Ответ
+
     Выполнено:
 
     ```{bash}
-    15:15:26 | ~/netology/netology_ci [main]
-    \(vainoord) $> ansible-playbook playbook/site.yml -i playbook/inventory/prod.yml --ask-vault-pass
-    Vault password: 
+    19:36:57 | ~/netology/netology_ci [main]
+    \(vainoord) $> ansible-lint playbook/site.yml
+    WARNING  Ignore loading rule from /usr/local/Cellar/ansible-lint/6.9.0/libexec/lib/python3.10/site-packages/ansiblelint/rules/jinja.py due to No module named 'black'
+    WARNING  Overriding detected file kind 'yaml' with 'playbook' for given positional argument: playbook/site.yml
 
-    PLAY [Print os facts] ************************************************************************************************************
-
-    TASK [Gathering Facts] ***********************************************************************************************************
-    [WARNING]: Platform darwin on host localhost is using the discovered Python interpreter at /usr/local/bin/python3.10, but future
-    installation of another Python interpreter could change the meaning of that path. See https://docs.ansible.com/ansible-
-    core/2.13/reference_appendices/interpreter_discovery.html for more information.
-    ok: [localhost]
-    ok: [ubuntu]
-    ok: [centos7]
-
-    TASK [Print OS] ******************************************************************************************************************
-    ok: [centos7] => {
-        "msg": "CentOS"
-    }
-    ok: [ubuntu] => {
-        "msg": "Ubuntu"
-    }
-    ok: [localhost] => {
-        "msg": "MacOSX"
-    }
-
-    TASK [Print fact] ****************************************************************************************************************
-    ok: [centos7] => {
-        "msg": "el default fact"
-    }
-    ok: [ubuntu] => {
-        "msg": "deb default fact"
-    }
-    ok: [localhost] => {
-        "msg": "all default fact"
-    }
-
-    PLAY RECAP ***********************************************************************************************************************
-    centos7                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    ubuntu                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+    Passed with production profile: 0 failure(s), 0 warning(s) on 1 files.
     ```
 
-12. Заполните `README.md` ответами на вопросы. Сделайте `git push` в ветку `master`. В ответе отправьте ссылку на ваш открытый репозиторий с изменённым `playbook` и заполненным `README.md`.
-
-## Необязательная часть
-
-1. При помощи `ansible-vault` расшифруйте все зашифрованные файлы с переменными.
-2. Зашифруйте отдельное значение `PaSSw0rd` для переменной `some_fact` паролем `netology`. Добавьте полученное значение в `group_vars/all/exmp.yml`.
-
-   ### Ответ
-
-   ```{yml}
-   ---
-     some_fact: !vault |
-             $ANSIBLE_VAULT;1.1;AES256
-             62373562313536326130343330323635633264323336386235353166663463383231336566623565
-             3130616230363435323338663035353234636463393735630a346331653964613137623739326130
-             39376661323566346131386533393939376632343734663161336631313362313138316631383632
-             6438656431363531370a643031383036633462326438396436336565653661303865623137646564
-             6534
-   ```
-
-3. Запустите `playbook`, убедитесь, что для нужных хостов применился новый `fact`.
+6. Попробуйте запустить playbook на этом окружении с флагом `--check`.
 
     ### Ответ
 
     ```{bash}
-    23:16:26 | ~/netology/netology_ci [main]
-    \(vainoord) $> ansible-playbook playbook/site.yml -i playbook/inventory/prod.yml --ask-vault-pass
-    Vault password: 
+    PLAY [Install Clickhouse] ********************************************************************************************************************************************
 
-    PLAY [Print os facts] ************************************************************************************************************
+    TASK [Gathering Facts] ***********************************************************************************************************************************************
+    ok: [clickhouse-01]
 
-    TASK [Gathering Facts] ***********************************************************************************************************
-    [WARNING]: Platform darwin on host localhost is using the discovered Python interpreter at /usr/local/bin/python3.10, but future
-    installation of another Python interpreter could change the meaning of that path. See https://docs.ansible.com/ansible-
-    core/2.13/reference_appendices/interpreter_discovery.html for more information.
-    ok: [localhost]
-    ok: [ubuntu]
-    ok: [centos7]
+    TASK [Get clickhouse distrib] ****************************************************************************************************************************************
+    ok: [clickhouse-01] => (item=clickhouse-client)
+    ok: [clickhouse-01] => (item=clickhouse-server)
+    failed: [clickhouse-01] (item=clickhouse-common-static) => {"ansible_loop_var": "item", "changed": false, "dest": "./clickhouse-common-static-22.3.3.44.rpm", "elapsed": 0, "gid": 0, "group": "root", "item": "clickhouse-common-static", "mode": "0644", "msg": "Request failed", "owner": "root", "response": "HTTP Error 404: Not Found", "size": 246310036, "state": "file", "status_code": 404, "uid": 0, "url": "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-22.3.3.44.noarch.rpm"}
 
-    TASK [Print OS] ******************************************************************************************************************
-    ok: [centos7] => {
-        "msg": "CentOS"
-    }
-    ok: [ubuntu] => {
-        "msg": "Ubuntu"
-    }
-    ok: [localhost] => {
-        "msg": "MacOSX"
-    }
+    TASK [Get clickhouse distrib (common-static package)] ****************************************************************************************************************
+    ok: [clickhouse-01]
 
-    TASK [Print fact] ****************************************************************************************************************
-    ok: [centos7] => {
-        "msg": "el default fact"
-    }
-    ok: [ubuntu] => {
-        "msg": "deb default fact"
-    }
-    ok: [localhost] => {
-        "msg": "PaSSw0rd"
-    }
+    TASK [Install clickhouse packages] ***********************************************************************************************************************************
+    ok: [clickhouse-01]
 
-    PLAY RECAP ***********************************************************************************************************************
-    centos7                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    ubuntu                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+    TASK [Create database] ***********************************************************************************************************************************************
+    skipping: [clickhouse-01]
+
+    PLAY [Install Vector] ************************************************************************************************************************************************
+
+    TASK [Gathering Facts] ***********************************************************************************************************************************************
+    ok: [vector-01]
+
+    TASK [Mkdir for vector] **********************************************************************************************************************************************
+    changed: [vector-01]
+
+    TASK [Get vector distrib] ********************************************************************************************************************************************
+    ok: [vector-01]
+
+    TASK [Install vector package] ****************************************************************************************************************************************
+    ok: [vector-01]
+
+    PLAY RECAP ***********************************************************************************************************************************************************
+    clickhouse-01              : ok=3    changed=0    unreachable=0    failed=0    skipped=1    rescued=1    ignored=0   
+    vector-01                  : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
     ```
 
-4. Добавьте новую группу хостов `fedora`, самостоятельно придумайте для неё переменную. В качестве образа можно использовать [этот](https://hub.docker.com/r/pycontribs/fedora).
+7. Запустите playbook на `prod.yml` окружении с флагом `--diff`. Убедитесь, что изменения на системе произведены.
+8. Повторно запустите playbook с флагом `--diff` и убедитесь, что playbook идемпотентен.
 
     ### Ответ
 
     ```{bash}
-    21:18:27 | ~/netology/netology_ci [main]
-    \(vainoord) $> ansible-playbook playbook/site.yml -i playbook/inventory/prod.yml --ask-vault-pass
-    Vault password: 
+    PLAY [Install Clickhouse] ********************************************************************************************************************************************
 
-    PLAY [Print os facts] ************************************************************************************************************
+    TASK [Gathering Facts] ***********************************************************************************************************************************************
+    ok: [clickhouse-01]
 
-    TASK [Gathering Facts] ***********************************************************************************************************
-    [WARNING]: Platform darwin on host localhost is using the discovered Python interpreter at /usr/local/bin/python3.10, but future
-    installation of another Python interpreter could change the meaning of that path. See https://docs.ansible.com/ansible-
-    core/2.13/reference_appendices/interpreter_discovery.html for more information.
-    ok: [localhost]
-    ok: [fedora]
-    ok: [ubuntu]
-    ok: [centos7]
+    TASK [Get clickhouse distrib] ****************************************************************************************************************************************
+    ok: [clickhouse-01] => (item=clickhouse-client)
+    ok: [clickhouse-01] => (item=clickhouse-server)
+    failed: [clickhouse-01] (item=clickhouse-common-static) => {"ansible_loop_var": "item", "changed": false, "dest": "./clickhouse-common-static-22.3.3.44.rpm", "elapsed": 0, "gid": 0, "group": "root", "item": "clickhouse-common-static", "mode": "0644", "msg": "Request failed", "owner": "root", "response": "HTTP Error 404: Not Found", "size": 246310036, "state": "file", "status_code": 404, "uid": 0, "url": "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-22.3.3.44.noarch.rpm"}
 
-    TASK [Print OS] ******************************************************************************************************************
-    ok: [centos7] => {
-        "msg": "CentOS"
-    }
-    ok: [ubuntu] => {
-        "msg": "Ubuntu"
-    }
-    ok: [localhost] => {
-        "msg": "MacOSX"
-    }
-    ok: [fedora] => {
-        "msg": "Fedora"
-    }
+    TASK [Get clickhouse distrib (common-static package)] ****************************************************************************************************************
+    ok: [clickhouse-01]
 
-    TASK [Print fact] ****************************************************************************************************************
-    ok: [centos7] => {
-        "msg": "el default fact"
-    }
-    ok: [ubuntu] => {
-        "msg": "deb default fact"
-    }
-    ok: [fedora] => {
-        "msg": "fed default fact"
-    }
-    ok: [localhost] => {
-        "msg": "PaSSw0rd"
-    }
+    TASK [Install clickhouse packages] ***********************************************************************************************************************************
+    ok: [clickhouse-01]
 
-    PLAY RECAP ***********************************************************************************************************************
-    centos7                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    fedora                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    ubuntu                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0 
+    TASK [Create database] ***********************************************************************************************************************************************
+    ok: [clickhouse-01]
+
+    PLAY [Install Vector] ************************************************************************************************************************************************
+
+    TASK [Gathering Facts] ***********************************************************************************************************************************************
+    ok: [vector-01]
+
+    TASK [Mkdir for vector] **********************************************************************************************************************************************
+    ok: [vector-01]
+
+    TASK [Get vector distrib] ********************************************************************************************************************************************
+    ok: [vector-01]
+
+    TASK [Install vector package] ****************************************************************************************************************************************
+    ok: [vector-01]
+
+    PLAY RECAP ***********************************************************************************************************************************************************
+    clickhouse-01              : ok=4    changed=0    unreachable=0    failed=0    skipped=0    rescued=1    ignored=0   
+    vector-01                  : ok=4    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0  
     ```
 
-5. Напишите скрипт на bash: автоматизируйте поднятие необходимых контейнеров, запуск ansible-playbook и остановку контейнеров.
+9. Подготовьте README.md файл по своему playbook. В нём должно быть описано: что делает playbook, какие у него есть параметры и теги.
 
     ### Ответ
-    
-    Добавлен файл `script.sh` в корень проекта. Скрипт запускает скачивание докер-образов, создает контейнеры, 
-6. Все изменения должны быть зафиксированы и отправлены в вашей личный репозиторий.
+
+    Файл добавлен в директория playbook.
+
+10. Готовый playbook выложите в свой репозиторий, поставьте тег `08-ansible-02-playbook` на фиксирующий коммит, в ответ предоставьте ссылку на него.
 
 ---
 

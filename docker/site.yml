@@ -1,0 +1,61 @@
+---
+# Play containers deploying
+- name: Deploy containers
+  hosts: local
+  handlers:
+    - name: Start container for clickhouse
+      become: true
+      community.docker.docker_container:
+        name: clickhouse-01
+        state: started
+
+    - name: Start container for vector
+      become: true
+      community.docker.docker_container:
+        name: vector-01
+        state: started
+
+  tasks:
+    - name: Create docker network
+      community.docker.docker_network:
+        name: my_network
+
+    - name: Create a Centos image
+      community.docker.docker_image:
+        name: my_centos:7
+        build:
+          path: ./Centos/
+        source: build
+      tags:
+        - pull_image
+
+    - name: Create a Debian image
+      community.docker.docker_image:
+        name: my_debian:7
+        build:
+          path: ./Debian/
+        source: build
+      tags:
+        - pull_image
+
+    - name: Create Centos container
+      community.docker.docker_container:
+        name: clickhouse-01
+        image: my_centos:7
+        networks:
+          - my_network
+        exposed_ports:
+          - '8123'
+          - '9000'
+          - '9004'
+          - '9005'
+          - '9009'
+      notify: Start container for clickhouse
+
+    - name: Create Debian container
+      community.docker.docker_container:
+        name: vector-01
+        image: my_debian:7
+        networks:
+          - my_network
+      notify: Start container for vector
