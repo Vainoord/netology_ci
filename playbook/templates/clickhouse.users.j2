@@ -45,6 +45,9 @@
         </networks>
         <profile>{{ user.profile }}</profile>
         <quota>{{ user.quota }}</quota>
+        {% if user.access_management is defined %}
+        <access_management>{{ user.access_management }}</access_management>
+        {% endif %}
         {% if user.dbs is defined %}
          <allow_databases>
         {% for db in user.dbs %}

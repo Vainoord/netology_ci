@@ -1,86 +1,72 @@
-# 8.2 Playbook description
+# Playbook description
 
 This playbook sets up the Clickhouse DBMS and the Vector to transfer data on two docker containers. Each container will keep one application.
 
 ## GROUP VARS
 
-### Clickhouse
+### Clickhouse variables
+
+#### __Installation__
 
 _clickhouse_version_ - define a version of the Clickhouse package for installation.\
 _clickhouse_packages_ - a list of the Clickhouse packages for downloading.
 
-### Vector
+#### __Server configuration__
+
+_clickhouse_http_port_ - http port (default 8123).\
+_clickhouse_tcp_port_ - tcp port (default 9000).\
+_clickhouse_interserver_http_ - Inter-server communication port (default 9009).\
+_clickhouse_listen_host_ - hosts from clickhouse will wait connection.
+
+_clickhouse_path_configdir_ - default path to configuration directory.\
+_clickhouse_path_user_files_ - path to custom user configuration files.\
+_clickhouse_path_data_ - path to clickhouse libraries.\
+_clickhouse_path_tmp_ - directory for temporary files.\
+_clickhouse_path_logdir_ - path to log files.\
+_clickhouse_service_ - name of clickhouse service.
+
+#### __User configuration__
+
+_clickhouse_networks_default_ - define networks from default clickhouse user can connect to databases.\
+_clickhouse_networks_custom_ - define networks from custom clickhouse users can connect to databases (like vector user).\
+_clickhouse_users_default_ - define default user presettings.\
+_clickhouse_users_custom_ - define custom user presettings.\
+_clickhouse_profiles_default_ - define default profile presettings.\
+_clickhouse_profiles_custom_ - define custom profile presettings.\
+_clickhouse_quotas_intervals_default_ - define base quotas set.\
+_clickhouse_quotas_default_ - define quotas for default user.\
+_clickhouse_quotas_custom_ - define quotas for custom user.
+
+### Vector variables
+
+#### __Installation__
 
 _vector_version_ - a version of the Vector.\
 _vector_package_ - a name of the Vector.\
 _os_architecture_ - an OS instruction set.
 
+#### __Configuration__
+
+_vector_config_dir_ - default directory for vector configurations.\
+_vector_config_ - clickhouse connection and data sharing ssettings.\
+
 ## Playbook tasks
-
-### Localhost
-
-__Create docker network__ (Tag `create_docker_network`) - create a docker network.\
-__Create a Centos image__ (Tag `run_clickhouse_container`) - create an image based on Centos:7 with packages `sudo` and `python3`.\
-__Create a Debian image__ (Tag `run_vector_container`) - create an image based on Debian:11.5 with `python3` package.\
-__Run Centos container__ (Tag `run_clickhouse_container`) - run docker container with Centos.\
-__Run Debian container__ (Tag `run_vector_container`) - run docker container with Debian.
 
 ### Clickhouse
 
 __Get clickhouse distrib__ (Tag `start_clickhouse`) - download packages clickhouse-server, clickhouse-client, clickhouse-common.\
 __Install clickhouse packages__ (Tag `get_clickhouse`) - deploy the Clickhouse.\
+__Generate users config__ (Tag `configure_clickhouse`) - create users.xml config file in users.d.\
+__Generate server config__ (Tag `configure_clickhouse`) - create config.xml config file in config.d.\
 __Start clickhouse server__ (Tag `install_clickhouse`) - launch clickhouse-server process.\
 __Generate users config__ (Tag `configure_clickhouse`) - generate users.xml file with Clickhouse users.\
-__Create database__ (Tag `configure_clickhouse`) - create test database as an example.
+__Create database and table__ (Tag `configure_clickhouse`) - create test database as an example.
 
 ### Vector
 
-__Mkdir for vector__ (Tag `mkdir_vector`) - create directory for the Vector package.\
-__Get vector distrib__ (Tag `get_vector`) - download specified Vector package.\
-__Install vector package__ (Tag `install_vector`) - install Vector application.
-
----
-
-
-# 8.2 Описание Playbook 
-
-Этот playbook устанавливает в два докер контейнера СУБД clickhouse и vector для передачи данных.
-
-## Переменные
-
-### Clickhouse
-
-_clickhouse_version_ - версия устанавливаемого пакета clickhouse.\
-_clickhouse_packages_ - список пакетов clickhouse для скачивания.
-
-### Vector
-
-_vector_version_ - версия устанавливаемого пакета vector.\
-_vector_package_ - имя пакета vector.\
-_os_architecture_ - тип архитектуры OS пакета.
-
-## Playbook tasks
-
-### Localhost
-
-__Create docker network__ (Тег `create_docker_network`) - создание docker сети.\
-__Create a Centos image__ (Тег `run_clickhouse_container`) - создание образа из Centos:7 c установленными пакетами `sudo` и `python3`.\
-__Create a Debian image__ (Тег `run_vector_container`) - создание образа из Centos:7 c установленным пакетом `python3`.\
-__Run Centos container__ (Тег `run_clickhouse_container`) - запуск docker контейнета с Centos.\
-__Run Debian container__ (Тег `run_vector_container`) - запуск docker контейнера с Debian.
-
-### Clickhouse
-
-__Get clickhouse distrib__ (Тег `start_clickhouse`) - скачивание пакетов clickhouse-server, clickhouse-client, clickhouse-common.\
-__Install clickhouse packages__ (Тег `get_clickhouse`) - развертывание Clickhouse.\
-__Start clickhouse server__ (Тег `install_clickhouse`) - запуск службы clickhouse-server.\
-__Generate users config__ (Tag `configure_clickhouse`) - генерация файла users.xml с пользователями Clickhouse.\
-__Create database__ (Тег `configure_clickhouse`) - создание тестовой БД.
-
-### Vector
-
-__Mkdir for vector__ (Tag `mkdir_vector`) - создание директории для скачивание пакета Vector.\
-__Get vector distrib__ (Tag `get_vector`) - скачивание пакета Vector.\
-__Install vector package__ (Tag `install_vector`) - установка Vector.
+__Install vector package | Debian__ (Tag `install_vector`) - create directory for the Vector package.\
+__Configure service | Template systemd unit__ (Tag `configure_vector`) - create vector.service.\
+__Configure Vector | ensure that directory exists__ (Tag `configure_vector`)- check default directory /etc/vector.\
+__Configure Vector | Template config__ (Tag `configure_vector`, `install_vector`) - create clickhouse data transfer config.
 
 ---

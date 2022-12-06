@@ -1,81 +1,13 @@
 ---
-# Play containers deploying
-- name: Deploy containers
-  hosts: local
-  handlers:
-  tasks:
-    - name: Create docker network
-      community.docker.docker_network:
-        name: my_net
-      tags:
-        - docker_network
-
-    - name: Create Centos image
-      community.docker.docker_image:
-        name: my_centos
-        tag: "7"
-        build:
-          path: ../docker/Centos/
-          rm: true
-        source: build
-        state: present
-      tags:
-        - run_clickhouse_container
-
-    - name: Create Debian image
-      community.docker.docker_image:
-        name: my_debian
-        tag: "11"
-        build:
-          path: ../docker/Debian/
-          rm: true
-        source: build
-        state: present
-      tags:
-        - run_vector_container
-
-    - name: Run Centos container
-      community.docker.docker_container:
-        name: clickhouse-01
-        image: my_centos:7
-        networks:
-          - name: my_net
-        published_ports:
-          - 0.0.0.0:8123:8123
-          - 0.0.0.0:9000:9000
-          - 0.0.0.0:9004:9004
-          - 0.0.0.0:9005:9005
-          - 0.0.0.0:9009:9009
-        state: started
-        detach: true
-        tty: true
-        interactive: true
-      tags:
-        - run_clickhouse_container
-
-    - name: Run Debian container
-      community.docker.docker_container:
-        name: vector-01
-        image: my_debian:11
-        networks:
-          - name: my_net
-        state: started
-        detach: true
-        tty: true
-        interactive: true
-      tags:
-        - run_vector_container
-
 # Play clickhouse installation
-- name: Install Clickhouse
+- name: Install clickhouse
   hosts: clickhouse
   handlers:
-    - name: Start clickhouse server
+    - name: Start clickhouse service
       become: true
-      ansible.builtin.command:
-        cmd: /etc/init.d/clickhouse-server start && sleep 5
-      tags:
-        - start_clickhouse
+      ansible.builtin.service:
+        name: clickhouse-server
+        state: restarted
 
   tasks:
     - name: Get clickhouse distrib
@@ -107,24 +39,42 @@
           - clickhouse-server-{{ clickhouse_version }}.rpm
       tags:
         - install_clickhouse
-      notify: Start clickhouse server
+      notify: Start clickhouse service
 
     - name: Generate users config
       ansible.builtin.template:
-        src: users.j2
-        dest: "/etc/clickhouse-server/users.d/users.xml"
+        src: clickhouse.users.j2
+        dest: "{{ clickhouse_path_configdir }}/users.d/users.xml"
         owner: "clickhouse"
         group: "clickhouse"
-        mode: "ug=r,o-r"
+        mode: "0775"
+      become: true
+      tags:
+        - configure_clickhouse
+
+    - name: Generate server config
+      ansible.builtin.template:
+        src: clickhouse.config.j2
+        dest: "{{ clickhouse_path_configdir }}/config.d/config.xml"
+        owner: "clickhouse"
+        group: "clickhouse"
+        mode: "0775"
       become: true
       tags:
         - configure_clickhouse
 
     - name: Flush handlers
       ansible.builtin.meta: flush_handlers
+      tags:
+        - install_clickhouse
 
-    - name: Create database
-      ansible.builtin.command: "clickhouse-client --user vector --password vector -q 'create database if not exists logs;'"
+    - name: Create database and table
+      ansible.builtin.shell: |
+        clickhouse-client -q "create user vector identified with sha256_password by 'vector';"
+        clickhouse-client -q 'create database if not exists logs;'
+        clickhouse-client -q 'grant all on logs.* to vector with grant option;'
+        clickhouse-client -q 'create table if not exists logs.vector_logs ("file" String, "host" String, "message" String, "date" DateTime) Engine=Log;'
+        exit 0
       register: create_db
       failed_when: create_db.rc != 0 and create_db.rc !=82
       changed_when: create_db.rc == 0
@@ -132,28 +82,59 @@
         - configure_clickhouse
 
 # Play vector installation
-- name: Install Vector
+- name: Install vector
   hosts: vector
   handlers:
+    - name: Start vector service
+      become: true
+      become_method: sudo
+      ansible.builtin.service:
+        name: vector
+        state: restarted
+        daemon_reload: true
+
   tasks:
-    - name: Mkdir for vector
-      ansible.builtin.file:
-        path: /vector
-        state: directory
-        mode: '0776'
-      tags:
-        - mkdir_vector
-
-    - name: Get vector distrib
-      ansible.builtin.get_url:
-        url: "https://packages.timber.io/vector/{{ vector_version }}/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
-        dest: "/vector/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
-        mode: '0776'
-      tags:
-        - get_vector
-
-    - name: Install vector package
+    - name: Install vector package | Debian
+      become: true
+      become_method: sudo
       ansible.builtin.apt:
-        deb: "/vector/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
+        deb: "https://packages.timber.io/vector/{{ vector_version }}/{{ vector_package }}_{{ vector_version }}-1_{{ vector_architecture }}.deb"
       tags:
         - install_vector
+
+    - name: Configure service | Template systemd unit
+      become: true
+      become_method: sudo
+      ansible.builtin.template:
+        src: vector.service.j2
+        dest: /etc/systemd/system/vector.service
+        mode: 0644
+      tags:
+        - configure_vector
+
+    - name: Configure Vector | ensure that directory exists
+      become: true
+      become_method: sudo
+      ansible.builtin.file:
+        path: "{{ vector_config_dir }}"
+        state: directory
+        mode: 0755
+      tags:
+        - configure_vector
+
+    - name: Configure Vector | Template config
+      become: true
+      become_method: sudo
+      ansible.builtin.template:
+        src: vector.yml.j2
+        mode: 0755
+        dest: "{{ vector_config_dir }}/vector.yml"
+      tags:
+        - configure_vector
+      changed_when: true
+      notify: Start vector service
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+      tags:
+        - configure_vector,install_vector

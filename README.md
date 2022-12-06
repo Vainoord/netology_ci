@@ -9,28 +9,65 @@
 
     ### Ответ
 
-    Подготовлены docker контейнеры с centos7 под clickhouse и debian11 под vector
+    Подготовлены VM с centos7 для clickhouse и VM с debian11 для vector в yandex cloud.
+
 ## Основная часть
 
 1. Приготовьте свой собственный inventory файл `prod.yml`.
 
     ### Ответ
 
-    Готово. Использую docker-контейнеры в качестве тестовой среды:
+    Готово:
 
-    ```{yml}
-    ---
-    # clickhouse host (in docker container)
-    clickhouse:
-    hosts:
-        clickhouse-01:
-        ansible_connection: docker
-    # vector host (in docker container)
-    vector:
-    hosts:
-        vector-01:
-        ansible_connection: docker
-    ```
+```yml
+---
+# clickhouse host (yandex cloud)
+clickhouse:
+  hosts:
+    clickhouse-01:
+      ansible_connection: ssh
+      ansible_host: 158.160.42.52
+      ansible_port: 22
+      ansible_ssh_private_key_file: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          33313366353261646537366139366533386530666665353764393363643635613663313336616131
+          6139633464323666616464366633343834643234663965640a626333393436383665313733383039
+          34306331353433646166663761633231613665306266383861616634353962623864333565383435
+          3634333430363566310a346435333433303035383465363632323937373835366136366463663433
+          33393837616233643561666132636630653635366162323534366132303639646634
+      ansible_user: vainoord
+      ansible_sudo_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          39353930353063636632616238643135333434383939326165366465373734303939663638343530
+          3335353331353833653032323164633834363062393062310a663763316536383639396537393638
+          63383530306333653866626335646135653438383633623964363238666334376366393266653539
+          3230643031306665390a333563343534303965393837346330356534383630656237646336643261
+          33336331643938626137663439636264303166656265323165353030343639646237
+      
+# vector host (yandex cloud)
+vector:
+  hosts:
+    vector-01:
+      ansible_connection: ssh
+      ansible_host: 158.160.38.168
+      ansible_port: 22
+      ansible_ssh_private_key_file: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          33313366353261646537366139366533386530666665353764393363643635613663313336616131
+          6139633464323666616464366633343834643234663965640a626333393436383665313733383039
+          34306331353433646166663761633231613665306266383861616634353962623864333565383435
+          3634333430363566310a346435333433303035383465363632323937373835366136366463663433
+          33393837616233643561666132636630653635366162323534366132303639646634
+      ansible_user: vainoord
+      ansible_sudo_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          39353930353063636632616238643135333434383939326165366465373734303939663638343530
+          3335353331353833653032323164633834363062393062310a663763316536383639396537393638
+          63383530306333653866626335646135653438383633623964363238666334376366393266653539
+          3230643031306665390a333563343534303965393837346330356534383630656237646336643261
+          33336331643938626137663439636264303166656265323165353030343639646237
+
+```
 
 2. Допишите playbook: нужно сделать ещё один play, который устанавливает и настраивает [vector](https://vector.dev).
 3. При создании tasks рекомендую использовать модули: `get_url`, `template`, `unarchive`, `file`.
@@ -38,308 +75,130 @@
 
     ### Ответ
 
-    Поменял collection в handler. Вместо `ansible.builtin.service` поставил `ansible.builtin.command`, т.к. в контейнере с Centos7 не работал перезапуск службы через `systemctl`. Также написал play с развертывание контейнеров. В итоге play с запуском контейнеров работает, play с установкой и настройкой clickhouse не работает. При добавлении файла `users.xml` в директорию clickhouse `/etc/clickhouse-server/users.d/` сервер не запускается. Файл `user.xml` генерится через шаблон, который был взят отсюда: https://github.com/AlexeySetevoi/ansible-clickhouse
-
-    Содержимое site.yml:
-
-    ```{yml}
-    ---
-    # Play containers deploying
-    - name: Deploy containers
-    hosts: local
-    handlers:
-    tasks:
-        - name: Create docker network
-        community.docker.docker_network:
-            name: my_net
-        tags:
-            - docker_network
-
-        - name: Create Centos image
-        community.docker.docker_image:
-            name: my_centos
-            tag: "7"
-            build:
-            path: ../docker/Centos/
-            rm: true
-            source: build
-            state: present
-        tags:
-            - run_clickhouse_container
-
-        - name: Create Debian image
-        community.docker.docker_image:
-            name: my_debian
-            tag: "11"
-            build:
-            path: ../docker/Debian/
-            rm: true
-            source: build
-            state: present
-        tags:
-            - run_vector_container
-
-        - name: Run Centos container
-        community.docker.docker_container:
-            name: clickhouse-01
-            image: my_centos:7
-            networks:
-            - name: my_net
-            published_ports:
-            - 0.0.0.0:8123:8123
-            - 0.0.0.0:9000:9000
-            - 0.0.0.0:9004:9004
-            - 0.0.0.0:9005:9005
-            - 0.0.0.0:9009:9009
-            state: started
-            detach: true
-            tty: true
-            interactive: true
-        tags:
-            - run_clickhouse_container
-
-        - name: Run Debian container
-        community.docker.docker_container:
-            name: vector-01
-            image: my_debian:11
-            networks:
-            - name: my_net
-            state: started
-            detach: true
-            tty: true
-            interactive: true
-        tags:
-            - run_vector_container
-
-    # Play clickhouse installation
-    - name: Install Clickhouse
-    hosts: clickhouse
-    handlers:
-        - name: Start clickhouse server
-        become: true
-        ansible.builtin.command:
-            cmd: /etc/init.d/clickhouse-server start && sleep 5
-        tags:
-            - start_clickhouse
-
-    tasks:
-        - name: Get clickhouse distrib
-        block:
-            - name: Get clickhouse distrib
-            ansible.builtin.get_url:
-                url: "https://packages.clickhouse.com/rpm/stable/{{ item }}-{{ clickhouse_version }}.noarch.rpm"
-                dest: "./{{ item }}-{{ clickhouse_version }}.rpm"
-                mode: '0776'
-            with_items: "{{ clickhouse_packages }}"
-            tags:
-                - get_clickhouse
-        rescue:
-            - name: Get clickhouse distrib (common-static package)
-            ansible.builtin.get_url:
-                url: "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-{{ clickhouse_version }}.x86_64.rpm"
-                dest: "./clickhouse-common-static-{{ clickhouse_version }}.rpm"
-                mode: '0776'
-            tags:
-                - get_clickhouse
-
-        - name: Install clickhouse packages
-        become: true
-        ansible.builtin.yum:
-            name:
-            - yum-utils
-            - clickhouse-common-static-{{ clickhouse_version }}.rpm
-            - clickhouse-client-{{ clickhouse_version }}.rpm
-            - clickhouse-server-{{ clickhouse_version }}.rpm
-        tags:
-            - install_clickhouse
-        notify: Start clickhouse server
-
-        - name: Generate users config
-        ansible.builtin.template:
-            src: users.j2
-            dest: "/etc/clickhouse-server/users.d/users.xml"
-            owner: "clickhouse"
-            group: "clickhouse"
-            mode: "ug=r,o-r"
-        become: true
-        tags:
-            - configure_clickhouse
-
-        - name: Flush handlers
-        ansible.builtin.meta: flush_handlers
-
-        - name: Create database
-        ansible.builtin.command: "clickhouse-client --user vector --password vector -q 'create database if not exists logs;'"
-        register: create_db
-        failed_when: create_db.rc != 0 and create_db.rc !=82
-        changed_when: create_db.rc == 0
-        tags:
-            - configure_clickhouse
-
-    # Play vector installation
-    - name: Install Vector
-    hosts: vector
-    handlers:
-    tasks:
-        - name: Mkdir for vector
-        ansible.builtin.file:
-            path: /vector
-            state: directory
-            mode: '0776'
-        tags:
-            - mkdir_vector
-
-        - name: Get vector distrib
-        ansible.builtin.get_url:
-            url: "https://packages.timber.io/vector/{{ vector_version }}/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
-            dest: "/vector/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
-            mode: '0776'
-        tags:
-            - get_vector
-
-        - name: Install vector package
-        ansible.builtin.apt:
-            deb: "/vector/{{ vector_package }}_{{ vector_version }}-1_{{ os_architecture }}.deb"
-        tags:
-            - install_vector
-        ```
-
-        Содержимое vars.yml для Vector:
-
-        ```{yml}
-        ---
-        # a version of vector we need
-        vector_version: "0.25.1"
-        # package we need for vector installation
-        vector_package: "vector"
-        # x86_64 OS
-        os_architecture: "amd64"
-        #Vector configuration
-        vector_config:
-        sources:
-            sample_file:
-            type: file
-            read_from: beginning
-            include:
-                - /var/logs/dpkg.log
-        sinks:
-            to_clickhouse:
-            type: clickhouse
-            inputs:
-                # we take 'sample_file' from 'sources' above
-                - sample_file
-            endpoints: http://172.18.0.2:8123
-            databases: logs
-            table: vector_host_log
-            auth:
-                strategy: basic
-                user: vector
-                password: vector
-            skin_unknown_fields: null
-            compression: gzip
-    ```
+    Tasks добавлены в файл site.yml
 
 5. Запустите `ansible-lint site.yml` и исправьте ошибки, если они есть.
 
     ### Ответ
 
-    Выполнено:
+    Выполнено, ошибки исправлены:
 
-    ```{bash}
-    19:36:57 | ~/netology/netology_ci [main]
-    \(vainoord) $> ansible-lint playbook/site.yml
-    WARNING  Ignore loading rule from /usr/local/Cellar/ansible-lint/6.9.0/libexec/lib/python3.10/site-packages/ansiblelint/rules/jinja.py due to No module named 'black'
-    WARNING  Overriding detected file kind 'yaml' with 'playbook' for given positional argument: playbook/site.yml
+```bash
+19:36:57 | ~/netology/netology_ci [main]
+\(vainoord) $> ansible-lint playbook/site.yml
+WARNING  Ignore loading rule from /usr/local/Cellar/ansible-lint/6.9.0/libexec/lib/python3.10/site-packages/ansiblelint/rules/jinja.py due to No module named 'black'
+WARNING  Overriding detected file kind 'yaml' with 'playbook' for given positional argument: playbook/site.yml
 
-    Passed with production profile: 0 failure(s), 0 warning(s) on 1 files.
-    ```
+Passed with production profile: 0 failure(s), 0 warning(s) on 1 files.
+```
 
 6. Попробуйте запустить playbook на этом окружении с флагом `--check`.
 
     ### Ответ
 
-    ```{bash}
-    PLAY [Install Clickhouse] ********************************************************************************************************************************************
+    Playbook валится на таске `Install clickhouse packages`, т.к. с флагом `--check` пакеты не будут скачиваться и никаких изменений на удаленных хостах производится не будут.
 
-    TASK [Gathering Facts] ***********************************************************************************************************************************************
-    ok: [clickhouse-01]
+```bash
+PLAY [Install clickhouse] ************************************************************************************************************************************************************************************************************************************
 
-    TASK [Get clickhouse distrib] ****************************************************************************************************************************************
-    ok: [clickhouse-01] => (item=clickhouse-client)
-    ok: [clickhouse-01] => (item=clickhouse-server)
-    failed: [clickhouse-01] (item=clickhouse-common-static) => {"ansible_loop_var": "item", "changed": false, "dest": "./clickhouse-common-static-22.3.3.44.rpm", "elapsed": 0, "gid": 0, "group": "root", "item": "clickhouse-common-static", "mode": "0644", "msg": "Request failed", "owner": "root", "response": "HTTP Error 404: Not Found", "size": 246310036, "state": "file", "status_code": 404, "uid": 0, "url": "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-22.3.3.44.noarch.rpm"}
+TASK [Gathering Facts] ***************************************************************************************************************************************************************************************************************************************
+The authenticity of host '158.160.42.52 (158.160.42.52)' can't be established.
+ED25519 key fingerprint is SHA256:cPbgEW5GflrnNG4BzVSCRTXnKm+uRZB7hmk/qY1/cuA.
+This key is not known by any other names
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+ok: [clickhouse-01]
 
-    TASK [Get clickhouse distrib (common-static package)] ****************************************************************************************************************
-    ok: [clickhouse-01]
+TASK [Get clickhouse distrib] ********************************************************************************************************************************************************************************************************************************
+changed: [clickhouse-01] => (item=clickhouse-client)
+changed: [clickhouse-01] => (item=clickhouse-server)
+failed: [clickhouse-01] (item=clickhouse-common-static) => {"ansible_loop_var": "item", "changed": false, "dest": "./clickhouse-common-static-22.3.3.44.rpm", "elapsed": 0, "item": "clickhouse-common-static", "msg": "Request failed", "response": "HTTP Error 404: Not Found", "status_code": 404, "url": "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-22.3.3.44.noarch.rpm"}
 
-    TASK [Install clickhouse packages] ***********************************************************************************************************************************
-    ok: [clickhouse-01]
+TASK [Get clickhouse distrib (common-static package)] ********************************************************************************************************************************************************************************************************
+changed: [clickhouse-01]
 
-    TASK [Create database] ***********************************************************************************************************************************************
-    skipping: [clickhouse-01]
+TASK [Install clickhouse packages] ***************************************************************************************************************************************************************************************************************************
+fatal: [clickhouse-01]: FAILED! => {"changed": false, "msg": "No RPM file matching 'clickhouse-common-static-22.3.3.44.rpm' found on system", "rc": 127, "results": ["yum-utils-1.1.31-54.el7_8.noarch providing yum-utils is already installed", "No RPM file matching 'clickhouse-common-static-22.3.3.44.rpm' found on system"]}
 
-    PLAY [Install Vector] ************************************************************************************************************************************************
-
-    TASK [Gathering Facts] ***********************************************************************************************************************************************
-    ok: [vector-01]
-
-    TASK [Mkdir for vector] **********************************************************************************************************************************************
-    changed: [vector-01]
-
-    TASK [Get vector distrib] ********************************************************************************************************************************************
-    ok: [vector-01]
-
-    TASK [Install vector package] ****************************************************************************************************************************************
-    ok: [vector-01]
-
-    PLAY RECAP ***********************************************************************************************************************************************************
-    clickhouse-01              : ok=3    changed=0    unreachable=0    failed=0    skipped=1    rescued=1    ignored=0   
-    vector-01                  : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-    ```
+PLAY RECAP ***************************************************************************************************************************************************************************************************************************************************
+clickhouse-01              : ok=2    changed=1    unreachable=0    failed=1    skipped=0    rescued=1    ignored=0   
+```
 
 7. Запустите playbook на `prod.yml` окружении с флагом `--diff`. Убедитесь, что изменения на системе произведены.
+
+    ### Ответ
+
+    Есть изменения в тасках, в которых идет создание файлов конфигураций или сервисовs:
+
+    - Generate users config
+    - Generate server config
+    - Configure service | Template systemd unit
+    - Configure Vector | ensure that directory exists
+    - Configure Vector | Template config
+
 8. Повторно запустите playbook с флагом `--diff` и убедитесь, что playbook идемпотентен.
 
     ### Ответ
 
-    ```{bash}
-    PLAY [Install Clickhouse] ********************************************************************************************************************************************
+    При повторном запуске playbook нет изменений в конфигурациях сервисов:
 
-    TASK [Gathering Facts] ***********************************************************************************************************************************************
-    ok: [clickhouse-01]
+```bash
+14:16:48 | ~/netology/netology_ci/terraform/yc [main]
+\(vainoord) $> ansible-playbook  -i ~/netology/netology_ci/playbook/inventory/prod.yml ~/netology/netology_ci/playbook/site.yml --ask-vault-pass --diff
+Vault password: 
 
-    TASK [Get clickhouse distrib] ****************************************************************************************************************************************
-    ok: [clickhouse-01] => (item=clickhouse-client)
-    ok: [clickhouse-01] => (item=clickhouse-server)
-    failed: [clickhouse-01] (item=clickhouse-common-static) => {"ansible_loop_var": "item", "changed": false, "dest": "./clickhouse-common-static-22.3.3.44.rpm", "elapsed": 0, "gid": 0, "group": "root", "item": "clickhouse-common-static", "mode": "0644", "msg": "Request failed", "owner": "root", "response": "HTTP Error 404: Not Found", "size": 246310036, "state": "file", "status_code": 404, "uid": 0, "url": "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-22.3.3.44.noarch.rpm"}
+PLAY [Install clickhouse] ************************************************************************************************************************************************************************************************************************************
 
-    TASK [Get clickhouse distrib (common-static package)] ****************************************************************************************************************
-    ok: [clickhouse-01]
+TASK [Gathering Facts] ***************************************************************************************************************************************************************************************************************************************
+ok: [clickhouse-01]
 
-    TASK [Install clickhouse packages] ***********************************************************************************************************************************
-    ok: [clickhouse-01]
+TASK [Get clickhouse distrib] ********************************************************************************************************************************************************************************************************************************
+ok: [clickhouse-01] => (item=clickhouse-client)
+ok: [clickhouse-01] => (item=clickhouse-server)
+failed: [clickhouse-01] (item=clickhouse-common-static) => {"ansible_loop_var": "item", "changed": false, "dest": "./clickhouse-common-static-22.3.3.44.rpm", "elapsed": 0, "gid": 1001, "group": "vainoord", "item": "clickhouse-common-static", "mode": "0776", "msg": "Request failed", "owner": "vainoord", "response": "HTTP Error 404: Not Found", "secontext": "unconfined_u:object_r:user_home_t:s0", "size": 246310036, "state": "file", "status_code": 404, "uid": 1001, "url": "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-22.3.3.44.noarch.rpm"}
 
-    TASK [Create database] ***********************************************************************************************************************************************
-    ok: [clickhouse-01]
+TASK [Get clickhouse distrib (common-static package)] ********************************************************************************************************************************************************************************************************
+ok: [clickhouse-01]
 
-    PLAY [Install Vector] ************************************************************************************************************************************************
+TASK [Install clickhouse packages] ***************************************************************************************************************************************************************************************************************************
+ok: [clickhouse-01]
 
-    TASK [Gathering Facts] ***********************************************************************************************************************************************
-    ok: [vector-01]
+TASK [Generate users config] *********************************************************************************************************************************************************************************************************************************
+ok: [clickhouse-01]
 
-    TASK [Mkdir for vector] **********************************************************************************************************************************************
-    ok: [vector-01]
+TASK [Generate server config] ********************************************************************************************************************************************************************************************************************************
+ok: [clickhouse-01]
 
-    TASK [Get vector distrib] ********************************************************************************************************************************************
-    ok: [vector-01]
+TASK [Flush handlers] ****************************************************************************************************************************************************************************************************************************************
 
-    TASK [Install vector package] ****************************************************************************************************************************************
-    ok: [vector-01]
+TASK [Create database and table] *****************************************************************************************************************************************************************************************************************************
+changed: [clickhouse-01]
 
-    PLAY RECAP ***********************************************************************************************************************************************************
-    clickhouse-01              : ok=4    changed=0    unreachable=0    failed=0    skipped=0    rescued=1    ignored=0   
-    vector-01                  : ok=4    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0  
-    ```
+PLAY [Install vector] ****************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***************************************************************************************************************************************************************************************************************************************
+ok: [vector-01]
+
+TASK [Install vector package | Debian] ***********************************************************************************************************************************************************************************************************************
+ok: [vector-01]
+
+TASK [Configure service | Template systemd unit] *************************************************************************************************************************************************************************************************************
+ok: [vector-01]
+
+TASK [Configure Vector | ensure that directory exists] *******************************************************************************************************************************************************************************************************
+ok: [vector-01]
+
+TASK [Configure Vector | Template config] ********************************************************************************************************************************************************************************************************************
+changed: [vector-01]
+
+TASK [Flush handlers] ****************************************************************************************************************************************************************************************************************************************
+
+RUNNING HANDLER [Start vector service] ***********************************************************************************************************************************************************************************************************************
+changed: [vector-01]
+
+PLAY RECAP ***************************************************************************************************************************************************************************************************************************************************
+clickhouse-01              : ok=6    changed=1    unreachable=0    failed=0    skipped=0    rescued=1    ignored=0   
+vector-01                  : ok=6    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
 
 9. Подготовьте README.md файл по своему playbook. В нём должно быть описано: что делает playbook, какие у него есть параметры и теги.
 
