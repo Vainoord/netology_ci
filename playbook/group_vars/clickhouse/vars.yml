@@ -13,13 +13,14 @@ clickhouse_http_port: 8123
 clickhouse_tcp_port: 9000
 clickhouse_interserver_http: 9009
 
+# specify hosts/subnet that server is going to listen
 clickhouse_listen_host:
-  - "192.168.150.0/24"
+  - "::"
 
 clickhouse_path_configdir: "/etc/clickhouse-server"
 clickhouse_path_user_files: "{{ clickhouse_path_configdir }}/users.d"
 clickhouse_path_data: "/var/lib/clickhouse"
-clickhouse_path_tmp: "{{ clickhouse_path_base }}/tmp/"
+clickhouse_path_tmp: "{{ clickhouse_path_data }}/tmp/"
 clickhouse_path_logdir: "/var/log/clickhouse-server"
 clickhouse_service: 'clickhouse-server.service'
 
@@ -64,3 +65,12 @@ clickhouse_quotas_default:
 
 clickhouse_quotas_custom:
   - { name: "vector", intervals: "{{ clickhouse_quotas_intervals_default }}", comment: "vector quota without limiting usage" }
+
+clickhouse_logger:
+  level: trace
+  log: "/var/log/clickhouse-server/clickhouse-server.log"
+  errorlog: "/var/log/clickhouse-server/clickhouse-server.err.log"
+  size: 100M
+  count: 10
+  
+mark_cache_size: 5368709120

@@ -24,7 +24,7 @@ vector_config:
         # we take 'sample_file' from 'sources' above
         - sample_file
       database: logs
-      endpoint: http://192.168.150.5:8123
+      endpoint: http://192.168.150.10:8123
       table: vector_logs
       auth:
         strategy: basic

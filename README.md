@@ -1,217 +1,143 @@
 # Домашнее задание к занятию "2. Работа с Playbook"
 
-## Подготовка к выполнению
+## Алгоритм выполнения ДЗ
 
-1. (Необязательно) Изучите, что такое [clickhouse](https://www.youtube.com/watch?v=fjTNS2zkeBs) и [vector](https://www.youtube.com/watch?v=CgEhyffisLY)
-2. Создайте свой собственный (или используйте старый) публичный репозиторий на github с произвольным именем.
-3. Скачайте [playbook](./playbook/) из репозитория с домашним заданием и перенесите его в свой репозиторий.
-4. Подготовьте хосты в соответствии с группами из предподготовленного playbook.
+### __Подготовка хостов__
 
-    ### Ответ
+1. Создать в YC директорию, сеть и подсеть (например `192.168.150.0/26`).
+2. В скрипте [encrypt!.sh](terraform/yc/packer/encrypt!.sh) прописать пароль будущего пользователя удаленных хостов `PASS=` и публичный ключ ssh `SSH=`.
+3. Запустить скрипт `encrypt!.sh`, в директории `terraform/yc/packer/` будут созданы по два зашифрованных файла для debian и centos.
+4. В файлы `debian.json` и `centos.json` задать параметры:
 
-    Подготовлены VM с centos7 для clickhouse и VM с debian11 для vector в yandex cloud.
+   - token учетной записи
+   - folder_id учетной записи
+   - zone
+   - subnet_id из п.1
 
-## Основная часть
+5. Запустить создание образов: `packer build debian.json`, `packer build centos.json`. VM с debian будет использована для Vector, а Centos для Clickhouse.
+6. В файле [variables.tf](terraform/yc/variables.tf) задать:
+   - yandex_token
+   - yandex_cloud_id
+   - yandex_folder_id
+   - my-centos-7 - id образа centos с п.5
+   - my-debian-11 - id образа debian с п.5
+   - yandex_zone
+   - subnet-id из п.1
 
-1. Приготовьте свой собственный inventory файл `prod.yml`.
-
-    ### Ответ
-
-    Готово:
-
-```yml
----
-# clickhouse host (yandex cloud)
-clickhouse:
-  hosts:
-    clickhouse-01:
-      ansible_connection: ssh
-      ansible_host: 158.160.42.52
-      ansible_port: 22
-      ansible_ssh_private_key_file: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          33313366353261646537366139366533386530666665353764393363643635613663313336616131
-          6139633464323666616464366633343834643234663965640a626333393436383665313733383039
-          34306331353433646166663761633231613665306266383861616634353962623864333565383435
-          3634333430363566310a346435333433303035383465363632323937373835366136366463663433
-          33393837616233643561666132636630653635366162323534366132303639646634
-      ansible_user: vainoord
-      ansible_sudo_pass: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          39353930353063636632616238643135333434383939326165366465373734303939663638343530
-          3335353331353833653032323164633834363062393062310a663763316536383639396537393638
-          63383530306333653866626335646135653438383633623964363238666334376366393266653539
-          3230643031306665390a333563343534303965393837346330356534383630656237646336643261
-          33336331643938626137663439636264303166656265323165353030343639646237
-      
-# vector host (yandex cloud)
-vector:
-  hosts:
-    vector-01:
-      ansible_connection: ssh
-      ansible_host: 158.160.38.168
-      ansible_port: 22
-      ansible_ssh_private_key_file: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          33313366353261646537366139366533386530666665353764393363643635613663313336616131
-          6139633464323666616464366633343834643234663965640a626333393436383665313733383039
-          34306331353433646166663761633231613665306266383861616634353962623864333565383435
-          3634333430363566310a346435333433303035383465363632323937373835366136366463663433
-          33393837616233643561666132636630653635366162323534366132303639646634
-      ansible_user: vainoord
-      ansible_sudo_pass: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          39353930353063636632616238643135333434383939326165366465373734303939663638343530
-          3335353331353833653032323164633834363062393062310a663763316536383639396537393638
-          63383530306333653866626335646135653438383633623964363238666334376366393266653539
-          3230643031306665390a333563343534303965393837346330356534383630656237646336643261
-          33336331643938626137663439636264303166656265323165353030343639646237
-
-```
-
-2. Допишите playbook: нужно сделать ещё один play, который устанавливает и настраивает [vector](https://vector.dev).
-3. При создании tasks рекомендую использовать модули: `get_url`, `template`, `unarchive`, `file`.
-4. Tasks должны: скачать нужной версии дистрибутив, выполнить распаковку в выбранную директорию, установить vector.
-
-    ### Ответ
-
-    Tasks добавлены в файл site.yml
-
-5. Запустите `ansible-lint site.yml` и исправьте ошибки, если они есть.
-
-    ### Ответ
-
-    Выполнено, ошибки исправлены:
+7. Запустить из директории [terraform](terraform/yc/) создание VMs через `terraform init`, `terraform plan`, `terraform apply`.\
+Получить из outputs IP адреса машин:
 
 ```bash
-19:36:57 | ~/netology/netology_ci [main]
-\(vainoord) $> ansible-lint playbook/site.yml
-WARNING  Ignore loading rule from /usr/local/Cellar/ansible-lint/6.9.0/libexec/lib/python3.10/site-packages/ansiblelint/rules/jinja.py due to No module named 'black'
-WARNING  Overriding detected file kind 'yaml' with 'playbook' for given positional argument: playbook/site.yml
+Outputs:
 
-Passed with production profile: 0 failure(s), 0 warning(s) on 1 files.
+clickhouse-01_local_ip_address = "192.168.150.10"
+clickhouse-01_public_ip_address = "51.250.4.10"
+vector-01_local_ip_address = "192.168.150.23"
+vector-01_public_ip_address = "51.250.67.44"
 ```
 
-6. Попробуйте запустить playbook на этом окружении с флагом `--check`.
+### __Запуск playbook__
 
-    ### Ответ
+1. В файле с переменными для vector [vars.yml](playbook/group_vars/vector/vars.yml) установить `endpoint` на локальный ip адрес clickhouse и порт 8123, например:\
+ `endpoint: http://192.168.150.10:8123`
+2. В файле [prod.yml](playbook/inventory/prod.yml) поменять значения `ansible_host`, `ansible_ssh_private_key_file` на свои для групп clickhouse (vm с centos используется для clickhouse) и vector (vm с debian используется для vector).
+3. Запустить ansible playbook site.yml с inventory prod.yml. Во время запуска подтвердить использование ssh ключей для подключения к каждому хосту.
 
-    Playbook валится на таске `Install clickhouse packages`, т.к. с флагом `--check` пакеты не будут скачиваться и никаких изменений на удаленных хостах производится не будут.
+### __Ошибки__
+
+После выполнения playbook результат следующий:
 
 ```bash
-PLAY [Install clickhouse] ************************************************************************************************************************************************************************************************************************************
-
-TASK [Gathering Facts] ***************************************************************************************************************************************************************************************************************************************
-The authenticity of host '158.160.42.52 (158.160.42.52)' can't be established.
-ED25519 key fingerprint is SHA256:cPbgEW5GflrnNG4BzVSCRTXnKm+uRZB7hmk/qY1/cuA.
-This key is not known by any other names
-Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
-ok: [clickhouse-01]
-
-TASK [Get clickhouse distrib] ********************************************************************************************************************************************************************************************************************************
-changed: [clickhouse-01] => (item=clickhouse-client)
-changed: [clickhouse-01] => (item=clickhouse-server)
-failed: [clickhouse-01] (item=clickhouse-common-static) => {"ansible_loop_var": "item", "changed": false, "dest": "./clickhouse-common-static-22.3.3.44.rpm", "elapsed": 0, "item": "clickhouse-common-static", "msg": "Request failed", "response": "HTTP Error 404: Not Found", "status_code": 404, "url": "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-22.3.3.44.noarch.rpm"}
-
-TASK [Get clickhouse distrib (common-static package)] ********************************************************************************************************************************************************************************************************
-changed: [clickhouse-01]
-
-TASK [Install clickhouse packages] ***************************************************************************************************************************************************************************************************************************
-fatal: [clickhouse-01]: FAILED! => {"changed": false, "msg": "No RPM file matching 'clickhouse-common-static-22.3.3.44.rpm' found on system", "rc": 127, "results": ["yum-utils-1.1.31-54.el7_8.noarch providing yum-utils is already installed", "No RPM file matching 'clickhouse-common-static-22.3.3.44.rpm' found on system"]}
-
 PLAY RECAP ***************************************************************************************************************************************************************************************************************************************************
-clickhouse-01              : ok=2    changed=1    unreachable=0    failed=1    skipped=0    rescued=1    ignored=0   
+clickhouse-01              : ok=7    changed=6    unreachable=0    failed=0    skipped=0    rescued=1    ignored=0   
+vector-01                  : ok=6    changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
 ```
 
-7. Запустите playbook на `prod.yml` окружении с флагом `--diff`. Убедитесь, что изменения на системе произведены.
+На сервере с Clickhouse служба clickhouse-server запущена:
+```bash
+[root@clickhouse-01 netology]# systemctl status clickhouse-server
+● clickhouse-server.service - ClickHouse Server (analytic DBMS for big data)
+   Loaded: loaded (/usr/lib/systemd/system/clickhouse-server.service; disabled; vendor preset: disabled)
+   Active: active (running) since Wed 2022-12-07 14:02:02 UTC; 4min 20s ago
+ Main PID: 2404 (clckhouse-watch)
+   CGroup: /system.slice/clickhouse-server.service
+           ├─2404 clickhouse-watchdog --config=/etc/clickhouse-server/config.xml --pid-file=/run/clickhouse-server/clickhouse-server.pid
+           └─2405 /usr/bin/clickhouse-server --config=/etc/clickhouse-server/config.xml --pid-file=/run/clickhouse-server/clickhouse-server.pid
 
-    ### Ответ
+...
+```
 
-    Есть изменения в тасках, в которых идет создание файлов конфигураций или сервисовs:
-
-    - Generate users config
-    - Generate server config
-    - Configure service | Template systemd unit
-    - Configure Vector | ensure that directory exists
-    - Configure Vector | Template config
-
-8. Повторно запустите playbook с флагом `--diff` и убедитесь, что playbook идемпотентен.
-
-    ### Ответ
-
-    При повторном запуске playbook нет изменений в конфигурациях сервисов:
+БД `logs`, таблица `vector_logs` и пользователь `vector` созданы:
 
 ```bash
-14:16:48 | ~/netology/netology_ci/terraform/yc [main]
-\(vainoord) $> ansible-playbook  -i ~/netology/netology_ci/playbook/inventory/prod.yml ~/netology/netology_ci/playbook/site.yml --ask-vault-pass --diff
-Vault password: 
+[root@clickhouse-01 netology]# clickhouse-client -u vector --pass
+ClickHouse client version 22.3.3.44 (official build).
+Password for user (vector): 
+Connecting to localhost:9000 as user vector.
+Connected to ClickHouse server version 22.3.3 revision 54455.
 
-PLAY [Install clickhouse] ************************************************************************************************************************************************************************************************************************************
+clickhouse-01.yc.local :) show databases;
 
-TASK [Gathering Facts] ***************************************************************************************************************************************************************************************************************************************
-ok: [clickhouse-01]
+SHOW DATABASES
 
-TASK [Get clickhouse distrib] ********************************************************************************************************************************************************************************************************************************
-ok: [clickhouse-01] => (item=clickhouse-client)
-ok: [clickhouse-01] => (item=clickhouse-server)
-failed: [clickhouse-01] (item=clickhouse-common-static) => {"ansible_loop_var": "item", "changed": false, "dest": "./clickhouse-common-static-22.3.3.44.rpm", "elapsed": 0, "gid": 1001, "group": "vainoord", "item": "clickhouse-common-static", "mode": "0776", "msg": "Request failed", "owner": "vainoord", "response": "HTTP Error 404: Not Found", "secontext": "unconfined_u:object_r:user_home_t:s0", "size": 246310036, "state": "file", "status_code": 404, "uid": 1001, "url": "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-22.3.3.44.noarch.rpm"}
+Query id: c26df354-da18-4068-88b9-2f0dda60850a
 
-TASK [Get clickhouse distrib (common-static package)] ********************************************************************************************************************************************************************************************************
-ok: [clickhouse-01]
+┌─name─┐
+│ logs │
+└──────┘
 
-TASK [Install clickhouse packages] ***************************************************************************************************************************************************************************************************************************
-ok: [clickhouse-01]
+1 rows in set. Elapsed: 0.002 sec. 
 
-TASK [Generate users config] *********************************************************************************************************************************************************************************************************************************
-ok: [clickhouse-01]
+clickhouse-01.yc.local :) select * from logs.vector_logs;
 
-TASK [Generate server config] ********************************************************************************************************************************************************************************************************************************
-ok: [clickhouse-01]
+SELECT *
+FROM logs.vector_logs
 
-TASK [Flush handlers] ****************************************************************************************************************************************************************************************************************************************
+Query id: 37c8437b-ae32-463d-a6c3-4178bd264dcd
 
-TASK [Create database and table] *****************************************************************************************************************************************************************************************************************************
-changed: [clickhouse-01]
+Ok.
 
-PLAY [Install vector] ****************************************************************************************************************************************************************************************************************************************
-
-TASK [Gathering Facts] ***************************************************************************************************************************************************************************************************************************************
-ok: [vector-01]
-
-TASK [Install vector package | Debian] ***********************************************************************************************************************************************************************************************************************
-ok: [vector-01]
-
-TASK [Configure service | Template systemd unit] *************************************************************************************************************************************************************************************************************
-ok: [vector-01]
-
-TASK [Configure Vector | ensure that directory exists] *******************************************************************************************************************************************************************************************************
-ok: [vector-01]
-
-TASK [Configure Vector | Template config] ********************************************************************************************************************************************************************************************************************
-changed: [vector-01]
-
-TASK [Flush handlers] ****************************************************************************************************************************************************************************************************************************************
-
-RUNNING HANDLER [Start vector service] ***********************************************************************************************************************************************************************************************************************
-changed: [vector-01]
-
-PLAY RECAP ***************************************************************************************************************************************************************************************************************************************************
-clickhouse-01              : ok=6    changed=1    unreachable=0    failed=0    skipped=0    rescued=1    ignored=0   
-vector-01                  : ok=6    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+0 rows in set. Elapsed: 0.002 sec. 
 ```
 
-9. Подготовьте README.md файл по своему playbook. В нём должно быть описано: что делает playbook, какие у него есть параметры и теги.
+На сервер с Vector служба vector не запущена:
 
-    ### Ответ
+```bash
+root@vector-01:/home/netology# systemctl status vector
+● vector.service - Vector Service
+     Loaded: loaded (/etc/systemd/system/vector.service; static)
+     Active: failed (Result: exit-code) since Wed 2022-12-07 14:02:47 UTC; 8min ago
+    Process: 1110 ExecStart=/usr/bin/vector --config-yaml /etc/vector/vector.yml --watch-config (code=exited, status=78)
+   Main PID: 1110 (code=exited, status=78)
+        CPU: 51ms
 
-    Файл добавлен в директория playbook.
+Dec 07 14:02:47 vector-01 systemd[1]: vector.service: Scheduled restart job, restart counter is at 5.
+Dec 07 14:02:47 vector-01 systemd[1]: Stopped Vector Service.
+Dec 07 14:02:47 vector-01 systemd[1]: vector.service: Start request repeated too quickly.
+Dec 07 14:02:47 vector-01 systemd[1]: vector.service: Failed with result 'exit-code'.
+Dec 07 14:02:47 vector-01 systemd[1]: Failed to start Vector Service.
+```
 
-10. Готовый playbook выложите в свой репозиторий, поставьте тег `08-ansible-02-playbook` на фиксирующий коммит, в ответ предоставьте ссылку на него.
+Запуск вручную так же не работает:
 
----
-
-### Как оформить ДЗ?
-
-Выполненное домашнее задание пришлите ссылкой на .md-файл в вашем репозитории.
+```bash
+root@vector-01:/home/netology# /usr/bin/vector --config-yaml /etc/vector/vector.yml --watch-config
+2022-12-07T14:14:32.859211Z  INFO vector::app: Internal log rate limit configured. internal_log_rate_secs=10
+2022-12-07T14:14:32.860390Z  INFO vector::app: Log level is enabled. level="vector=info,codec=info,vrl=info,file_source=info,tower_limit=trace,rdkafka=info,buffers=info,lapin=info,kube=info"
+2022-12-07T14:14:32.860539Z  INFO vector::config::watcher: Creating configuration file watcher.
+2022-12-07T14:14:32.862735Z  INFO vector::config::watcher: Watching configuration files.
+2022-12-07T14:14:32.863548Z  INFO vector::app: Loading configs. paths=["/etc/vector/vector.yml"]
+2022-12-07T14:14:32.889026Z  INFO vector::topology::running: Running healthchecks.
+2022-12-07T14:14:32.889334Z  INFO vector: Vector has started. debug="false" version="0.25.1" arch="x86_64" revision="9125a99 2022-11-07"
+2022-12-07T14:14:32.889393Z  INFO vector::app: API is disabled, enable by setting `api.enabled` to `true` and use commands like `vector top`.
+2022-12-07T14:14:32.889567Z  INFO source{component_kind="source" component_id=sample_file component_type=file component_name=sample_file}: vector::sources::file: Starting file server. include=["/var/log/dpkg.log"] exclude=[]
+2022-12-07T14:14:32.892051Z  INFO source{component_kind="source" component_id=sample_file component_type=file component_name=sample_file}:file_server: file_source::checkpointer: Attempting to read legacy checkpoint files.
+2022-12-07T14:14:32.894422Z  INFO vector::topology::builder: Healthcheck: Passed.
+2022-12-07T14:14:32.899455Z  INFO source{component_kind="source" component_id=sample_file component_type=file component_name=sample_file}:file_server: vector::internal_events::file::source: Found new file to watch. file=/var/log/dpkg.log
+2022-12-07T14:14:33.912252Z ERROR sink{component_kind="sink" component_id=to_clickhouse component_type=clickhouse component_name=to_clickhouse}:request{request_id=0}: vector::sinks::util::retries: Not retriable; dropping the request. reason="response status: 400 Bad Request" internal_log_rate_limit=true
+2022-12-07T14:14:33.912342Z ERROR sink{component_kind="sink" component_id=to_clickhouse component_type=clickhouse component_name=to_clickhouse}:request{request_id=0}: vector::sinks::util::sink: Response failed. response=Response { status: 400, version: HTTP/1.1, headers: {"date": "Wed, 07 Dec 2022 14:14:33 GMT", "connection": "Keep-Alive", "content-type": "text/plain; charset=UTF-8", "x-clickhouse-server-display-name": "clickhouse-01.yc.local", "transfer-encoding": "chunked", "x-clickhouse-exception-code": "117", "keep-alive": "timeout=3", "x-clickhouse-summary": "{\"read_rows\":\"0\",\"read_bytes\":\"0\",\"written_rows\":\"0\",\"written_bytes\":\"0\",\"total_rows_to_read\":\"0\"}"}, body: b"Code: 117. DB::Exception: Unknown field found while parsing JSONEachRow format: source_type: (at row 1)\n: While executing JSONEachRowRowInputFormat. (INCORRECT_DATA) (version 22.3.3.44 (official build))\n" }
+2022-12-07T14:14:33.912421Z ERROR sink{component_kind="sink" component_id=to_clickhouse component_type=clickhouse component_name=to_clickhouse}:request{request_id=0}: vector_common::internal_event::service: Service call failed. No retries or retries exhausted. error="Response failed." request_id=0 error_type="request_failed" stage="sending" internal_log_rate_limit=true
+2022-12-07T14:14:33.912455Z ERROR sink{component_kind="sink" component_id=to_clickhouse component_type=clickhouse component_name=to_clickhouse}:request{request_id=0}: vector_common::internal_event::component_events_dropped: Events dropped intentional=false count=601 reason="Service call failed. No retries or retries exhausted." internal_log_rate_limit=true
+```
 
 ---

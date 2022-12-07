@@ -16,7 +16,7 @@ _clickhouse_packages_ - a list of the Clickhouse packages for downloading.
 _clickhouse_http_port_ - http port (default 8123).\
 _clickhouse_tcp_port_ - tcp port (default 9000).\
 _clickhouse_interserver_http_ - Inter-server communication port (default 9009).\
-_clickhouse_listen_host_ - hosts from clickhouse will wait connection.
+_clickhouse_listen_host_ - listen specefied address.
 
 _clickhouse_path_configdir_ - default path to configuration directory.\
 _clickhouse_path_user_files_ - path to custom user configuration files.\

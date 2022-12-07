@@ -2,7 +2,14 @@
 <?xml version="1.0"?>
 {{ ansible_managed | comment('xml') }} 
 <clickhouse>
-
+    <logger>
+        <!-- Possible levels: https://github.com/pocoproject/poco/blob/develop/Foundation/include/Poco/Logger.h#L105 -->
+        <level>{{ clickhouse_logger.level }}</level>
+        <log>{{ clickhouse_logger.log }}</log>
+        <errorlog>{{ clickhouse_logger.errorlog }}</errorlog>
+        <size>{{ clickhouse_logger.size }}</size>
+        <count>{{ clickhouse_logger.count }}</count>
+    </logger>
 {% if clickhouse_https_port is defined %}
     <https_port>{{ clickhouse_https_port }}</https_port>
 {% else %}
@@ -63,4 +70,5 @@
     <!-- Path to configuration file with users, access rights, profiles of settings, quotas. -->
     <users_config>{{ clickhouse_path_configdir }}/users.d/users.xml</users_config>
 
+    <mark_cache_size>{{ mark_cache_size }}</mark_cache_size>
 </clickhouse>
