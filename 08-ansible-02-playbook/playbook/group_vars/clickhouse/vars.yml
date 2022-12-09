@@ -17,6 +17,7 @@ clickhouse_interserver_http: 9009
 clickhouse_listen_host:
   - "::"
 
+# specify clickhouse dirs
 clickhouse_path_configdir: "/etc/clickhouse-server"
 clickhouse_path_user_files: "{{ clickhouse_path_configdir }}/users.d"
 clickhouse_path_data: "/var/lib/clickhouse"
@@ -29,6 +30,7 @@ clickhouse_networks_default:
   - "::1"
   - "127.0.0.1"
 
+# listen connections from everywhere
 clickhouse_networks_custom:
   - "::/0"
 
@@ -39,6 +41,7 @@ clickhouse_users_default:
 clickhouse_users_custom:
   - { name: "readonly", password: "", networks: "{{ clickhouse_networks_default }}", profile: "readonly", quota: "default", comment: "Example of user with readonly access" }
 
+# set users configs
 clickhouse_profiles_default:
  default:
    max_memory_usage: 1000000000
@@ -66,11 +69,13 @@ clickhouse_quotas_default:
 clickhouse_quotas_custom:
   - { name: "vector", intervals: "{{ clickhouse_quotas_intervals_default }}", comment: "vector quota without limiting usage" }
 
+# logger type
 clickhouse_logger:
   level: trace
   log: "/var/log/clickhouse-server/clickhouse-server.log"
   errorlog: "/var/log/clickhouse-server/clickhouse-server.err.log"
   size: 100M
   count: 10
-  
+
+# clickhouse cache size
 mark_cache_size: 5368709120

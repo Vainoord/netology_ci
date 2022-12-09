@@ -1,0 +1,55 @@
+{
+  "builders": [
+    {
+      "type": "yandex",
+      "token": "",
+      "folder_id": "",
+      "zone": "",
+
+      "image_name": "centos-7-test-netology",
+      "image_family": "centos-server-raw",
+      "image_description": "my custom centos image",
+
+      "source_image_family": "centos-7",
+      "subnet_id": "",
+      "use_ipv4_nat": true,
+      "disk_type": "network-ssd",
+      "ssh_username": "centos"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "centos_key.txt",
+      "destination": "/home/centos/"
+    },
+    {
+      "type": "file",
+      "source": "centos_pass.txt",
+      "destination": "/home/centos/"
+    },
+    {
+      "type": "file",
+      "source": "create_centos.sh",
+      "destination": "/home/centos/"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "echo '-- Updating APT --'",
+        "sudo yum update -y",
+        "echo '-- Begin packets installation --'",
+        "sudo yum install -y python3 gcc",
+        "echo '-- Create my custom user --'",
+        "sudo useradd netology --groups wheel --home '/home/netology'",
+        "echo '-- Granting netology group to centos user --'",
+        "sudo usermod -aG netology centos",
+        "echo '-- Create ssh directory for netology --'",
+        "sudo mkdir /home/netology/.ssh && sudo chown netology:netology /home/netology/.ssh",
+        "echo '-- Generate password and adding authorized_keys --'",
+        "sudo ./create_centos.sh",
+        "echo '-- All finished --'"
+      ]
+    }
+  ]
+}
