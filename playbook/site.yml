@@ -1,4 +1,64 @@
 ---
+# Play nginx installation
+- name: Install nginx
+  hosts: lighthouse
+  handlers:
+    - name: Start nginx service
+      become: true
+      ansible.builtin.command: nginx
+
+    - name: Reload nginx service
+      become: true
+      ansible.builtin.command: nginx -s reload
+
+  tasks:
+    - name: Nginx | Install epel-release
+      become: true
+      ansible.builtin.yum:
+        name: epel-release
+        state: present
+      notify: Start nginx service
+
+    - name: Nginx | Generate config
+      become: true
+      ansible.builtin.template:
+        src: templates/nginx.config.j2
+        dest: /etc/nginx/nginx.config
+        owner: root
+        group: root
+        mode: 0644
+      notify: Reload nginx service
+
+# Play lighthouse installation
+- name: Install lighthouse
+  hosts: lighthouse
+  handlers:
+    - name: Reload nginx service
+      become: true
+      ansible.builtin.command: nginx -s reload
+
+  pre_tasks:
+    - name: Lighthouse | Install dependencies
+      become: true
+      ansible.builtin.yum:
+        name: git
+        state: present
+
+  tasks:
+    - name: Lighthouse | Copy from git
+      ansible.builtin.git:
+        repo: "{{ lighthouse_vcs }}"
+        version: master
+        dest: "{{ lighthouse_location_dir }}"
+
+    - name: Lighthouse | Create config
+      become: true
+      ansible.builtin.template:
+        src: templates/lighthouse.config.j2
+        dest: /etc/nginx/conf.d/default.conf
+        mode: 0644
+      notify: Reload nginx service
+
 # Play clickhouse installation
 - name: Install clickhouse
   hosts: clickhouse
@@ -10,9 +70,9 @@
         state: restarted
 
   tasks:
-    - name: Get clickhouse distrib
+    - name: Clickhouse | Get distrib
       block:
-        - name: Get clickhouse distrib
+        - name: Clickhouse | Get distrib
           ansible.builtin.get_url:
             url: "https://packages.clickhouse.com/rpm/stable/{{ item }}-{{ clickhouse_version }}.noarch.rpm"
             dest: "./{{ item }}-{{ clickhouse_version }}.rpm"
@@ -21,7 +81,7 @@
           tags:
             - get_clickhouse
       rescue:
-        - name: Get clickhouse distrib (common-static package)
+        - name: Clickhouse | Get distrib (common-static package)
           ansible.builtin.get_url:
             url: "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-{{ clickhouse_version }}.x86_64.rpm"
             dest: "./clickhouse-common-static-{{ clickhouse_version }}.rpm"
@@ -29,7 +89,7 @@
           tags:
             - get_clickhouse
 
-    - name: Install clickhouse packages
+    - name: Clickhouse | Install packages
       become: true
       ansible.builtin.yum:
         name:
@@ -41,7 +101,7 @@
         - install_clickhouse
       notify: Start clickhouse service
 
-    - name: Generate users config
+    - name: Clickhouse | Generate users config
       ansible.builtin.template:
         src: clickhouse.users.j2
         dest: "{{ clickhouse_path_configdir }}/users.d/users.xml"
@@ -52,7 +112,7 @@
       tags:
         - configure_clickhouse
 
-    - name: Generate server config
+    - name: Clickhouse | Generate server config
       ansible.builtin.template:
         src: clickhouse.config.j2
         dest: "{{ clickhouse_path_configdir }}/config.d/config.xml"
@@ -68,7 +128,7 @@
       tags:
         - install_clickhouse
 
-    - name: Create database and table
+    - name: Clickhouse | Create database and table
       ansible.builtin.shell: |
         clickhouse-client -q "create user vector identified with sha256_password by 'vector';"
         clickhouse-client -q 'create database if not exists logs;'
@@ -94,15 +154,16 @@
         daemon_reload: true
 
   tasks:
-    - name: Install vector package | Debian
+    - name: Vector | Install package
       become: true
       become_method: sudo
       ansible.builtin.apt:
         deb: "https://packages.timber.io/vector/{{ vector_version }}/{{ vector_package }}_{{ vector_version }}-1_{{ vector_architecture }}.deb"
+        state: present
       tags:
         - install_vector
 
-    - name: Configure service | Template systemd unit
+    - name: Vector | Configure service
       become: true
       become_method: sudo
       ansible.builtin.template:
@@ -112,7 +173,7 @@
       tags:
         - configure_vector
 
-    - name: Configure Vector | ensure that directory exists
+    - name: Vector | Check config directory
       become: true
       become_method: sudo
       ansible.builtin.file:
@@ -122,7 +183,7 @@
       tags:
         - configure_vector
 
-    - name: Configure Vector | Template config
+    - name: Vector | Generate config
       become: true
       become_method: sudo
       ansible.builtin.template:

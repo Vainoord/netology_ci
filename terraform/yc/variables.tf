@@ -46,7 +46,7 @@ variable "my-debian-11" {
 }
 # YC | cloud zone
 variable "yandex_zone" {
-  default = ""
+  default = "ru-central1-a"
 }
 
 # YC | subnet id

@@ -1,0 +1,4 @@
+---
+nginx_user_name: nginx
+nginx_port: 8080
+lighthouse_vcs: "git@github.com:VKCOM/lighthouse.git"
