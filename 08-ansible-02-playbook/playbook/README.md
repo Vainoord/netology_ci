@@ -1,6 +1,6 @@
 # Playbook description
 
-This playbook sets up the Clickhouse DBMS and the Vector to transfer data on two docker containers. Each container will keep one application.
+This playbook sets up the Clickhouse DBMS and the Vector on two remote hosts for store logs from Vector host into Clickhouse database.
 
 ## GROUP VARS
 

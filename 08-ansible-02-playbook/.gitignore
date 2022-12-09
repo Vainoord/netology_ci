@@ -1,4 +1,5 @@
-# ignore all hidden terraform directories and files
+# ignore all terraform directories (include hidden) and files
+terraform*
 .terraform*
 *.hcl
 

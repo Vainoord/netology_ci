@@ -182,7 +182,7 @@ vector-01                  : ok=5    changed=1    unreachable=0    failed=0    s
 
     ### Ответ
 
-    Файл добавлен в директория playbook.
+    [README](playbook/README.md) добавлен в директорию playbook.
 
 10. Готовый playbook выложите в свой репозиторий, поставьте тег `08-ansible-02-playbook` на фиксирующий коммит, в ответ предоставьте ссылку на него.
 
