@@ -1,0 +1,18 @@
+# ignore all hidden terraform directories and files
+.terraform*
+*.hcl
+
+# ignore .tfstate files
+*.tfstate
+*.tfstate.*
+
+# ignore .txt files
+*.txt
+*.txt.*
+
+# ignore meta directory
+meta*
+
+# ignore docker directory
+docker*
+
