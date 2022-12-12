@@ -85,7 +85,8 @@ __Start clickhouse service__ - handler which start/restart Clickhouse service.
 
 __Vector | Install package__ (Tag `install_vector`) - create directory for the Vector package.\
 __Vector | Generate config__ (Tag `configure_vector`)- generate Vector .yml config file in /etc/vector directory from [vector.yml.j2](templates/vector.yml.j2) template.\
-__Vector | Generate config__ (Tag `configure_vector`) - create vector.service. Based on [vector.service.j2](templates/vector.service.j2) template.\
+__Vector | Configure service__ (Tag `configure_vector`) - create vector.service. Based on 
+[vector.service.j2](templates/vector.service.j2) template.\
 __Start vector service__ - handler which start/restart Vector service.
 
 ___
