@@ -1,7 +1,7 @@
 # Playbook description
 
 This playbook sets up the Clickhouse DBMS and the Vector on two remote hosts for store logs from Vector host into Clickhouse database.
-In addition playbook install lightweight interface Lighthouse to
+In addition playbook install lightweight interface Lighthouse to third server.
 
 ## GROUP VARS
 
