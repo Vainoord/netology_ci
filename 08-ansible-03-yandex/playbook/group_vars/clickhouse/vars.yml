@@ -1,0 +1,102 @@
+---
+# a version of clickhouse we need
+clickhouse_version: "22.3.3.44"
+
+# packages we need for clickhouse installation
+clickhouse_packages:
+  - clickhouse-client
+  - clickhouse-server
+  - clickhouse-common-static
+
+# specify clickhouse ports
+clickhouse_http_port: 8123
+clickhouse_tcp_port: 9000
+clickhouse_interserver_http: 9009
+
+# specify hosts/subnet that server is going to listen
+# this setting redefined by user's host ip or hostname
+clickhouse_listen_host:
+  - "::"
+
+# define lighthouse user
+lighthouse_user: "webadmin"
+lighthouse_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          66386264643432383732623466663466313333323262613637643765613739633261316435333137
+          6135626539656461313631316134633536323934383035660a333333356263343364323961393136
+          61393164663965346536376534393938626333353663633036316666303462343636316339373336
+          6464323734376639640a326662303031323263643633663432393534613235393435346131383833
+          63366662623162663633356439626164343463616364643237313963376636356530
+
+# define vector user
+vector_user: "vector"
+vector_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          30363431626561643837303238343134646638316230356230313465323863613539373031623631
+          6362343839363464626535353338313862333434353136650a366531313230643066316537333939
+          32346163393862613065646365373564303766383664396231663963326631383235316563643438
+          3436373365326363390a333835636130613666313265396236316334383635653732346165323962
+          6435
+
+# specify clickhouse dirs
+clickhouse_path_configdir: "/etc/clickhouse-server"
+clickhouse_path_user_files: "{{ clickhouse_path_configdir }}/users.d"
+clickhouse_path_data: "/var/lib/clickhouse"
+clickhouse_path_tmp: "{{ clickhouse_path_data }}/tmp/"
+clickhouse_path_logdir: "/var/log/clickhouse-server"
+clickhouse_service: 'clickhouse-server.service'
+
+# specify networks from which users can connect to the Clickhouse
+clickhouse_networks_default:
+  - "::1"
+  - "127.0.0.1"
+
+# listen connections from everywhere
+clickhouse_networks_custom:
+  - "::/0"
+
+# set users for the Clickhouse configuration
+clickhouse_users_default:
+  - { name: "default", password: "", networks: "{{ clickhouse_networks_default }}", profile: "default", quota: "default", access_management: "1", comment: "Default user for login if user not defined" }
+
+clickhouse_users_custom:
+  - { name: "readonly", password: "", networks: "{{ clickhouse_networks_default }}", profile: "readonly", quota: "default", comment: "Example of user with readonly access" }
+
+# set users configs
+clickhouse_profiles_default:
+ default:
+   max_memory_usage: 1000000000
+   use_uncompressed_cache: 0
+   load_balancing: random
+   max_partitions_per_insert_block: 100
+ readonly:
+   readonly: 0
+
+clickhouse_profiles_custom:
+  default:
+    max_memory_usage: 1000000000
+    use_uncompressed_cache: 0
+    load_balancing: random
+    max_partitions_per_insert_block: 100
+  readonly:
+    readonly: 0
+
+clickhouse_quotas_intervals_default:
+  - { duration: 3600, queries: 0, errors: 0, result_rows: 0, read_rows: 0, execution_time: 0 }
+
+clickhouse_quotas_default:
+  - { name: "default", intervals: "{{ clickhouse_quotas_intervals_default }}", comment: "Default quota - count only" }
+
+clickhouse_quotas_custom:
+  - { name: "vector", intervals: "{{ clickhouse_quotas_intervals_default }}", comment: "vector quota without limiting usage" }
+
+# logger type
+clickhouse_logger:
+  level: trace
+  log: "/var/log/clickhouse-server/clickhouse-server.log"
+  errorlog: "/var/log/clickhouse-server/clickhouse-server.err.log"
+  size: 100M
+  count: 10
+
+# clickhouse cache size
+mark_cache_size: 5368709120

@@ -1,0 +1,33 @@
+---
+# lighthouse host (yandex cloud)
+lighthouse:
+  hosts:
+    lighthouse-01:
+      ansible_connection: ssh
+      ansible_host: 
+      ansible_port: "{{ ssh_port }}"
+      ansible_ssh_private_key_file: "{{ ssh_pkey_file }}"
+      ansible_user: "{{ sudo_user }}"
+      ansible_sudo_pass: "{{ sudo_pass }}"
+
+# clickhouse host (yandex cloud)
+clickhouse:
+  hosts:
+    clickhouse-01:
+      ansible_connection: ssh
+      ansible_host: 
+      ansible_port: "{{ ssh_port }}"
+      ansible_ssh_private_key_file: "{{ ssh_pkey_file }}"
+      ansible_user: "{{ sudo_user }}"
+      ansible_sudo_pass: "{{ sudo_pass }}"
+      
+# vector host (yandex cloud)
+vector:
+  hosts:
+    vector-01:
+      ansible_connection: ssh
+      ansible_host: 
+      ansible_port: "{{ ssh_port }}"
+      ansible_ssh_private_key_file: "{{ ssh_pkey_file }}"
+      ansible_user: "{{ sudo_user }}"
+      ansible_sudo_pass: "{{ sudo_pass }}"
