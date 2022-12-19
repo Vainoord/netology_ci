@@ -1,0 +1,6 @@
+projectKey=my-python-project
+serverUrl=http://158.160.55.122:9000
+serverVersion=9.1.0.47736
+dashboardUrl=http://158.160.55.122:9000/dashboard?id=my-python-project
+ceTaskId=AYUq7XdvNYyqPHSSdmsp
+ceTaskUrl=http://158.160.55.122:9000/api/ce/task?id=AYUq7XdvNYyqPHSSdmsp
