@@ -1,0 +1,10 @@
+---
+# vars file for vector-role
+# a version of vector we need
+vector_version: "0.25.1"
+# package we need for vector installation
+vector_package: "vector"
+# x86_64 OS
+vector_architecture: "amd64"
+# default vector directory
+vector_config_dir: /etc/vector

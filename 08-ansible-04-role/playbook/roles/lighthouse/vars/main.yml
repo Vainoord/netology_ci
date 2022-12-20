@@ -1,0 +1,10 @@
+---
+# vars file for lighthouse
+# nginx user
+nginx_user_name: nginx
+
+# lighthouse distr
+lighthouse_vcs: "https://github.com/VKCOM/lighthouse.git"
+
+# directory for lighthouse installation
+lighthouse_dir: "/usr/share/lighthouse"

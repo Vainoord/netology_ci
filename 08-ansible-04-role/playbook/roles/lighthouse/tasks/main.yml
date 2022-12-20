@@ -1,0 +1,52 @@
+---
+# tasks file for lighthouse
+- name: Nginx | Install epel-release
+  become: true
+  ansible.builtin.yum:
+    name: epel-release
+    state: present
+  tags:
+    - get_nginx
+
+- name: Nginx | Install nginx
+  become: true
+  ansible.builtin.yum:
+    name: nginx
+    state: present
+  notify: Start nginx service
+  tags:
+    - get_nginx
+
+- name: Nginx | Generate config
+  become: true
+  become_method: sudo
+  ansible.builtin.template:
+    src: templates/nginx.config.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: 0644
+    force: true
+  notify: Reload nginx service
+  tags:
+    - config_nginx
+
+- name: Lighthouse | Copy from git
+  become: true
+  become_method: sudo
+  ansible.builtin.git:
+    repo: "{{ lighthouse_vcs }}"
+    version: master
+    dest: "{{ lighthouse_dir }}"
+  tags:
+    - get_lighthouse
+
+- name: Lighthouse | Create config
+  become: true
+  ansible.builtin.template:
+    src: templates/lighthouse.config.j2
+    dest: /etc/nginx/conf.d/lighthouse.conf
+    mode: 0644
+  notify: Reload nginx service
+  tags:
+    - configure_lighthouse

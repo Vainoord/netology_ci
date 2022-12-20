@@ -1,0 +1,6 @@
+---
+# http default port for nginx
+nginx_default_port: 8009
+
+# lighthouse http port
+lighthouse_port: 9000
