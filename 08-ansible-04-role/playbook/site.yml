@@ -1,45 +1,18 @@
 ---
 # Play nginx installation
-- name: Install nginx
+- name: Install lighthouse
   hosts: lighthouse
   roles:
   - lighthouse
-  handlers:
-  pre_tasks:
-    - name: Lighthouse | Install dependencies (git)
-      become: true
-      ansible.builtin.yum:
-        name: git
-        state: present
-      tags:
-        - install_git
 
 # Play clickhouse installation
 - name: Install clickhouse
   hosts: clickhouse
   roles:
     - clickhouse
-  handlers:
-  tasks:
-  post_tasks:
-    - name: Clickhouse | Create database and table
-      ansible.builtin.shell: |
-        clickhouse-client -u {{ dbms_user }} --pass {{ dbms_pass }} -q "create user {{ vector_user }} identified with sha256_password by '{{ vector_pass }}';"
-        clickhouse-client -u {{ dbms_user }} --pass {{ dbms_pass }} -q "alter user {{ vector_user }} host ip '0.0.0.0';"
-        clickhouse-client -u {{ dbms_user }} --pass {{ dbms_pass }} -q 'create database if not exists logs;'
-        clickhouse-client -u {{ dbms_user }} --pass {{ dbms_pass }} -q 'grant all on logs.* to {{ vector_user }} with grant option;'
-        clickhouse-client -u {{ dbms_user }} --pass {{ dbms_pass }} -q 'create table if not exists logs.vector_logs ("file" String, "host" String, "message" String, "date" DateTime) Engine=Log;'
-        exit 0
-      register: create_db
-      failed_when: create_db.rc != 0 and create_db.rc !=82
-      changed_when: create_db.rc == 0
-      tags:
-        - configure_clickhouse
 
 # Play vector installation
 - name: Install vector
   hosts: vector
   roles:
     - vector
-  handlers:
-  tasks:

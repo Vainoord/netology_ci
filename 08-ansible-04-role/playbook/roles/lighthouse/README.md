@@ -1,4 +1,4 @@
-Role Name
+ansible-lighthouse
 =========
 
 Simple lighthouse with nginx web-server deploy role.
@@ -13,6 +13,9 @@ This role has tested on:
 Required packages:
 
 - git
+- nginx
+
+All these packages will be installed during play launching.
 
 Role Variables
 --------------
@@ -36,14 +39,6 @@ Example Playbook
     - name: Install nginx
       hosts: lighthouse
       handlers:
-      pre_tasks:
-        - name: Lighthouse | Install dependencies (git)
-          become: true
-          ansible.builtin.yum:
-            name: git
-            state: present
-          tags:
-            - install_git
       roles:
         - lighthouse
 
@@ -58,5 +53,5 @@ Author Information
 [Lighthouse](https://github.com/VKCOM/lighthouse) source.
 
 Role created by Stanislav Gurniak\
-https://github.com/vainoord\
-https://gitlab.com/vainoord
+<https://github.com/vainoord>\
+<https://gitlab.com/vainoord>

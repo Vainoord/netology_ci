@@ -4,7 +4,7 @@ lighthouse:
   hosts:
     lighthouse-01:
       ansible_connection: ssh
-      ansible_host: 62.84.127.207
+      ansible_host: 158.160.55.159
       ansible_port: "{{ ssh_port }}"
       ansible_ssh_private_key_file: "{{ ssh_pkey_file }}"
       ansible_user: "{{ sudo_user }}"
@@ -15,7 +15,7 @@ clickhouse:
   hosts:
     clickhouse-01:
       ansible_connection: ssh
-      ansible_host: 84.201.133.71
+      ansible_host: 158.160.44.143
       ansible_port: "{{ ssh_port }}"
       ansible_ssh_private_key_file: "{{ ssh_pkey_file }}"
       ansible_user: "{{ sudo_user }}"
@@ -26,7 +26,7 @@ vector:
   hosts:
     vector-01:
       ansible_connection: ssh
-      ansible_host: 84.201.128.201
+      ansible_host: 158.160.57.41
       ansible_port: "{{ ssh_port }}"
       ansible_ssh_private_key_file: "{{ ssh_pkey_file }}"
       ansible_user: "{{ sudo_user }}"

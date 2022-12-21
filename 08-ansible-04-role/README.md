@@ -30,6 +30,37 @@
 10. Выложите playbook в репозиторий.
 11. В ответ приведите ссылки на оба репозитория с roles и одну ссылку на репозиторий с playbook.
 
+### Ответ
+
+Выполнено.\
+Roles загружены в репозитории:
+
+- [Репозиторий vector](https://gitlab.com/study-sg/vector-role)
+- [Репозиторий lighthouse](https://gitlab.com/study-sg/lighthouse-role)
+
+Использование ролей добавлено в playbook:
+
+```yml
+---
+# Play nginx installation
+- name: Install lighthouse
+  hosts: lighthouse
+  roles:
+    - lighthouse
+
+# Play clickhouse installation
+- name: Install clickhouse
+  hosts: clickhouse
+  roles:
+    - clickhouse
+
+# Play vector installation
+- name: Install vector
+  hosts: vector
+  roles:
+    - vector
+```
+
 ---
 
 ### Как оформить ДЗ?

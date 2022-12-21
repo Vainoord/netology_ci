@@ -1,4 +1,4 @@
-Role Name
+ansible-vector
 =========
 
 Simple vector deploy role with clickhouse connection example.
@@ -75,5 +75,5 @@ Author Information
 [Vector](https://vector.dev/docs/) by [Datadog](https://www.datadoghq.com/).
 
 Role created by Stanislav Gurniak\
-https://github.com/vainoord\
-https://gitlab.com/vainoord
+<https://github.com/vainoord>\
+<https://gitlab.com/vainoord>

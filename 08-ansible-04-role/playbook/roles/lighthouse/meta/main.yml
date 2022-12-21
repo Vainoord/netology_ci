@@ -1,6 +1,6 @@
 galaxy_info:
   author: Stanislav Gurniak
-  description: Role for installation and configuring lighthouse
+  description: Role for installation and configuring lightweight web-client Lighthouse
 
   # If the issue tracker for your role is not on github, uncomment the
   # next line and provide a value

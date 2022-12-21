@@ -1,5 +1,5 @@
 ---
-# tasks file for lighthouse
+# tasks file for lighthouse installation
 - name: Nginx | Install epel-release
   become: true
   ansible.builtin.yum:
@@ -30,6 +30,14 @@
   notify: Reload nginx service
   tags:
     - config_nginx
+
+- name: Lighthouse | Install dependencies (git)
+  become: true
+  ansible.builtin.yum:
+    name: git
+    state: present
+  tags:
+    - install_git
 
 - name: Lighthouse | Copy from git
   become: true
