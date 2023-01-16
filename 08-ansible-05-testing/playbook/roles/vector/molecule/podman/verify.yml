@@ -18,4 +18,3 @@
     ansible.builtin.command: "vector validate --no-environment --config-yaml /etc/vector/vector.yml"
     register: vector_validate
     changed_when: false
-  

@@ -6,7 +6,7 @@ driver:
   provider:
     name: virtualbox
 platforms:
-  - name: instance
+  - name: fedora37
     box: "generic/fedora37"
     memory: 4096
     cpus: 2

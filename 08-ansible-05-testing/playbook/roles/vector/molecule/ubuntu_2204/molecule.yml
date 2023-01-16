@@ -6,7 +6,7 @@ driver:
   provider:
     name: virtualbox
 platforms:
-  - name: instance
+  - name: ubuntu_2204
     box: "generic/ubuntu2204"
     memory: 4096
     cpus: 2
