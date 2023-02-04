@@ -16,4 +16,4 @@ scenario:
     - destroy
     - create
     - converge
-   # - destroy
+    - destroy
