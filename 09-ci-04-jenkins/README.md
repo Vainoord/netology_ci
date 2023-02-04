@@ -52,6 +52,67 @@
 Pipeline перенесен в JenkinsFile в репозиторий:\
 <https://gitlab.com/study-sg/playbook-example/-/blob/main/Jenkinsfile>
 
+
+Pipeline не работает:
+
+<details>
+<summary>Содержание лога</summary>
+
+```
+Started by user admin
+Obtained Jenkinsfile from git https://github.com/Vainoord/net_devops_repo01.git
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on clt-01 in /opt/jenkins_agent/workspace/Ansible pipeline
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Checkout SCM)
+[Pipeline] checkout
+Selected Git installation does not exist. Using Default
+The recommended git tool is: NONE
+No credentials specified
+Fetching changes from the remote Git repository
+Checking out Revision e76daa1679fee7d1dd0ebf4be02a59ba2e4200ea (refs/remotes/origin/main)
+Commit message: "flush repository"
+ > git rev-parse --resolve-git-dir /opt/jenkins_agent/workspace/Ansible pipeline/.git # timeout=10
+ > git config remote.origin.url https://github.com/Vainoord/net_devops_repo01.git # timeout=10
+Fetching upstream changes from https://github.com/Vainoord/net_devops_repo01.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.31.1'
+ > git fetch --tags --force --progress -- https://github.com/Vainoord/net_devops_repo01.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git rev-parse refs/remotes/origin/main^{commit} # timeout=10
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f e76daa1679fee7d1dd0ebf4be02a59ba2e4200ea # timeout=10
+ > git rev-list --no-walk e76daa1679fee7d1dd0ebf4be02a59ba2e4200ea # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (first)
+[Pipeline] sh
++ ansible-galaxy install -r requirements.yml -p .
+[WARNING]: - vector was NOT installed successfully: - command /usr/bin/git
+clone git@gitlab.com:study-sg/vector-role.git vector failed in directory
+/home/jenkins/.ansible/tmp/ansible-local-4460jalem75m/tmpifob6hdd (rc=128) -
+Cloning into 'vector'... git@gitlab.com: Permission denied (publickey).  fatal:
+Could not read from remote repository.  Please make sure you have the correct
+access rights and the repository exists.
+ERROR! - you can use --ignore-errors to skip failed roles and finish processing the list.
+Starting galaxy role install process
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 1
+Finished: FAILURE
+```
+
+</details>
+
 ---
 
 4. Создать Multibranch Pipeline на запуск `Jenkinsfile` из репозитория.
@@ -74,6 +135,9 @@ Multibranch pipeline создан, но не работает.
 имеет значение False и запускает прогон с флагами `--check --diff`.
 
 #### Ответ
+
+<details>
+<summary>Скрипт pipeline</summary>
 
 ```groovy
 node("ansible"){
@@ -98,6 +162,49 @@ node("ansible"){
     }
 }
 ```
+
+</details>
+
+Pipeline не запускается:
+
+<details>
+<summary>Лог pipeline</summary>
+
+```
+Started by user admin
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on clt-01 in /opt/jenkins_agent/workspace/Scripted pipeline
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Git checkout)
+[Pipeline] git
+The recommended git tool is: NONE
+using credential 91f90be2-44a4-4f4c-84dd-0a6209f7edf1
+Fetching changes from the remote Git repository
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // node
+ > git rev-parse --resolve-git-dir /opt/jenkins_agent/workspace/Scripted pipeline/.git # timeout=10
+ > git config remote.origin.url https://gitlab.com/study-sg/lighthouse-role.git # timeout=10
+Fetching upstream changes from https://gitlab.com/study-sg/lighthouse-role.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.31.1'
+using GIT_SSH to set credentials 
+[INFO] Currently running in a labeled security context
+[INFO] Currently SELinux is 'enforcing' on the host
+ > /usr/bin/chcon --type=ssh_home_t /opt/jenkins_agent/workspace/Scripted pipeline@tmp/jenkins-gitclient-ssh2118046113282205165.key
+Verifying host key using known hosts file
+ > git fetch --tags --force --progress -- https://gitlab.com/study-sg/lighthouse-role.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git rev-parse refs/remotes/origin/master^{commit} # timeout=10
+ > git rev-parse origin/master^{commit} # timeout=10
+[Pipeline] End of Pipeline
+ERROR: Couldn't find any revision to build. Verify the repository and branch configuration for this job.
+Finished: FAILURE
+```
+
+</details>
 
 ---
 
