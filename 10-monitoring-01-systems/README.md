@@ -201,6 +201,13 @@ P.S.: если при запуске некоторые контейнеры б�
      style="float: left; margin-right: 10px;" />
 </details>
 
+<details>
+<summary>Dashboard</summary>
+<img src="assets/scr5.png"
+     alt=""
+     style="float: left; margin-right: 10px;" />
+</details>
+
 #
 
 ## Дополнительное задание (со звездочкой*) - необязательно к выполнению
