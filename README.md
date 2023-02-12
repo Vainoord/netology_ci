@@ -6,7 +6,7 @@
 ### [02 - Ansible playbook](08-ansible-02-playbook/)
 ### [03 - Ansible yandex](08-ansible-03-yandex/)
 ### [04 - Ansible role](08-ansible-04-role/)
-### [05 - Ansible testing](08-ansible-05-testing)
+### [05 - Ansible testing](08-ansible-05-testing/)
 
 ---
 
@@ -20,5 +20,6 @@
 
 ## Monitoring
 
-### [02 - grafana](10-monitoring-02-grafana)
+### [01 - systems](10-monitoring-01-systems/)
+### [02 - grafana](10-monitoring-02-grafana/)
 
