@@ -15,6 +15,8 @@
 ### [01 - CI intro](09-ci-01-intro/)
 ### [03 - CI/CD processes](09-ci-03-CICD/)
 ### [04 - Jenkins](09-ci-04-jenkins/)
+### [05 - Teamcity](09-ci-05-teamcity/)
+### [06 - Gitlab](09-ci-06-gitlab/)
 
 ---
 
@@ -22,4 +24,3 @@
 
 ### [01 - systems](10-monitoring-01-systems/)
 ### [02 - grafana](10-monitoring-02-grafana/)
-
