@@ -137,14 +137,14 @@ Issue закрыт:
 
 <details>
 <summary>Master branch build log</summary>
-<img src="assets/scr6.png"
+<img src="assets/scr6-master-build.png"
      alt="Build master"
      style="float: left; margin-right: 10px;" />
 </details>
 
 <details>
 <summary>Master branch deploy log</summary>
-<img src="assets/scr5.png"
+<img src="assets/scr5-master-deploy.png"
      alt="Deploy master"
      style="float: left; margin-right: 10px;" />
 </details>
