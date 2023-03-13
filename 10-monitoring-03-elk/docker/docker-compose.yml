@@ -1,0 +1,135 @@
+version: "3.8"
+services: 
+  elasticsearch-hot: # ES hot node
+    image: "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
+    container_name: elasticsearch-hot-node
+    environment:
+      - cluster.name=${CLUSTER_NAME} # unites nodes with next cluster name
+      - cluster.initial_master_nodes=elasticsearch-hot-node # determines the set of master-eligible nodes
+      - discovery.seed_hosts=elasticsearch-hot-node,elasticsearch-warm-node # provides a list of the addresses of the master-eligible nodes in the cluster
+      - node.name=elasticsearch-hot-node # name of this node
+      - bootstrap.memory_lock=true # disable swapping, preventing any Elasticsearch heap memory from being swapped out
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # set the JVM minimum and maximum heap size
+      - xpack.license.self_generated.type=trial
+      - xpack.security.enabled=false
+      - node.roles=master,data_hot
+      - http.port=9200
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy: 
+      resources: # adjust resource limits for this node
+        limits:
+          cpus: "0.5"
+          memory: "1024m"
+        reservations:
+          cpus: "0.25"
+          memory: "512m"
+    ports:
+      - "${ES_PORT0}:${ES_PORT0}" # 9200
+    volumes:
+      - elasticsearch-hot_data:/usr/share/elasticsearch/data:Z
+    networks:
+      - ${NETWORK_NAME}
+    depends_on: # setup dependency
+      - elasticsearch-warm
+    #restart: unless-stopped
+  
+  elasticsearch-warm: # ES warm node
+    image: "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
+    container_name: elasticsearch-warm-node
+    environment:
+      - cluster.name=${CLUSTER_NAME} # unites nodes with next cluster name
+      - cluster.initial_master_nodes=elasticsearch-hot-node # determines the set of master-eligible nodes
+      - discovery.seed_hosts=elasticsearch-hot-node,elasticsearch-warm-node # provides a list of the addresses of the master-eligible nodes in the cluster
+      - node.name=elasticsearch-warm-node # name of this node
+      - bootstrap.memory_lock=true # disable swapping, preventing any Elasticsearch heap memory from being swapped out
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # set the JVM minimum and maximum heap size
+      - xpack.license.self_generated.type=trial
+      - xpack.security.enabled=false
+      - node.roles=master,data_warm
+      - http.port=9201
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources: # adjust resource limits for this node
+        limits:
+          cpus: "0.5"
+          memory: "1024m"
+        reservations:
+          cpus: "0.25"
+          memory: "512m"
+    ports:
+      - "${ES_PORT1}:${ES_PORT1}"
+    volumes:
+      - elasticsearch-warm_data:/usr/share/elasticsearch/data:Z
+    networks:
+      - ${NETWORK_NAME}
+    #restart: unless-stopped
+
+  kibana:
+    image: "docker.elastic.co/kibana/kibana:${STACK_VERSION}"
+    container_name: kibana
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch-hot-node:9200","http://elasticsearch-warm-node:9200"]' # list of elasticsearch nodes
+    deploy:
+      resources: # adjust resource limits for this node
+        limits:
+          cpus: "0.5"
+          memory: "512m"
+        reservations:
+          cpus: "0.25"
+          memory: "256m"
+    ports:
+      - "${KIBANA_PORT}:${KIBANA_PORT}"
+    networks:
+      - ${NETWORK_NAME}
+    depends_on: # setup dependency
+      - elasticsearch-hot
+      - elasticsearch-warm
+
+  filebeat: # log sender
+    image: "docker.elastic.co/beats/filebeat:${STACK_VERSION}"
+    container_name: filebeat-log-sender
+    user: root
+    volumes:
+      - ../filebeat/filebeat-config.yml:/usr/share/filebeat/filebeat.yml:ro,Z # use settings from the .yml file
+      - /var/lib/docker:/var/lib/docker:ro,Z # share docker log files
+      - /var/run/docker.sock:/var/run/docker.sock # share the docker socker with the filebeat container
+    networks:
+      - ${NETWORK_NAME}
+    depends_on: # setup dependency
+      - logstash
+
+  logstash: # log filter
+    image: "docker.elastic.co/logstash/logstash:${STACK_VERSION}"
+    container_name: logstash-log-filter
+    volumes:
+      - ../logstash/logstash-config.conf:/etc/logstash/conf.d/logstash.conf:ro,Z # 
+      - ../logstash/logstash.yml:/opt/config/logstash.yml:ro,Z #
+    ports:
+      - "${LOGSTASH_PORT}:${LOGSTASH_PORT}"
+    networks:
+      - ${NETWORK_NAME}
+    depends_on: # setup dependency
+      - elasticsearch-hot
+      - elasticsearch-warm
+
+volumes:
+    elasticsearch-hot_data:
+        driver: local
+    elasticsearch-warm_data:
+        driver: local
+
+networks:
+  elk:
+    driver: bridge
