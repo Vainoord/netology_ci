@@ -1,19 +1,11 @@
 version: "3.8"
-services: 
+services:
+
   elasticsearch-hot: # ES hot node
     image: "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
     container_name: elasticsearch-hot-node
     environment:
-      - cluster.name=${CLUSTER_NAME} # unites nodes with next cluster name
-      - cluster.initial_master_nodes=elasticsearch-hot-node # determines the set of master-eligible nodes
-      - discovery.seed_hosts=elasticsearch-hot-node,elasticsearch-warm-node # provides a list of the addresses of the master-eligible nodes in the cluster
-      - node.name=elasticsearch-hot-node # name of this node
-      - bootstrap.memory_lock=true # disable swapping, preventing any Elasticsearch heap memory from being swapped out
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # set the JVM minimum and maximum heap size
-      - xpack.license.self_generated.type=trial
-      - xpack.security.enabled=false
-      - node.roles=master,data_hot
-      - http.port=9200
     ulimits:
       memlock:
         soft: -1
@@ -32,27 +24,19 @@ services:
     ports:
       - "${ES_PORT0}:${ES_PORT0}" # 9200
     volumes:
+      - ../elasticsearch/elasticsearch-hot.yml:/usr/share/elasticsearch/config/elasticsearch.yml 
       - elasticsearch-hot_data:/usr/share/elasticsearch/data:Z
     networks:
-      - ${NETWORK_NAME}
+      elk:
+        ipv4_address: 192.168.32.2
     depends_on: # setup dependency
       - elasticsearch-warm
-    #restart: unless-stopped
   
   elasticsearch-warm: # ES warm node
     image: "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
     container_name: elasticsearch-warm-node
     environment:
-      - cluster.name=${CLUSTER_NAME} # unites nodes with next cluster name
-      - cluster.initial_master_nodes=elasticsearch-hot-node # determines the set of master-eligible nodes
-      - discovery.seed_hosts=elasticsearch-hot-node,elasticsearch-warm-node # provides a list of the addresses of the master-eligible nodes in the cluster
-      - node.name=elasticsearch-warm-node # name of this node
-      - bootstrap.memory_lock=true # disable swapping, preventing any Elasticsearch heap memory from being swapped out
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # set the JVM minimum and maximum heap size
-      - xpack.license.self_generated.type=trial
-      - xpack.security.enabled=false
-      - node.roles=master,data_warm
-      - http.port=9201
     ulimits:
       memlock:
         soft: -1
@@ -71,65 +55,102 @@ services:
     ports:
       - "${ES_PORT1}:${ES_PORT1}"
     volumes:
+      - ../elasticsearch/elasticsearch-warm.yml:/usr/share/elasticsearch/config/elasticsearch.yml 
       - elasticsearch-warm_data:/usr/share/elasticsearch/data:Z
     networks:
-      - ${NETWORK_NAME}
-    #restart: unless-stopped
+      elk:
+        ipv4_address: 192.168.32.3
 
-  kibana:
+  kibana: #data visualization dashboard
     image: "docker.elastic.co/kibana/kibana:${STACK_VERSION}"
     container_name: kibana
-    environment:
-      ELASTICSEARCH_HOSTS: '["http://elasticsearch-hot-node:9200","http://elasticsearch-warm-node:9200"]' # list of elasticsearch nodes
     deploy:
       resources: # adjust resource limits for this node
         limits:
           cpus: "0.5"
-          memory: "512m"
+          memory: "1024m"
         reservations:
           cpus: "0.25"
-          memory: "256m"
+          memory: "512m"
     ports:
       - "${KIBANA_PORT}:${KIBANA_PORT}"
+    volumes:
+      - ../kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro,Z
+      - kibana_data:/usr/share/kibana/data
     networks:
-      - ${NETWORK_NAME}
+      elk:
+        ipv4_address: 192.168.32.6
     depends_on: # setup dependency
       - elasticsearch-hot
       - elasticsearch-warm
 
-  filebeat: # log sender
+  filebeat: # log shipper
     image: "docker.elastic.co/beats/filebeat:${STACK_VERSION}"
     container_name: filebeat-log-sender
     user: root
     volumes:
       - ../filebeat/filebeat-config.yml:/usr/share/filebeat/filebeat.yml:ro,Z # use settings from the .yml file
-      - /var/lib/docker:/var/lib/docker:ro,Z # share docker log files
+      - /var/lib/docker:/var/lib/docker:Z
       - /var/run/docker.sock:/var/run/docker.sock # share the docker socker with the filebeat container
+    deploy:
+      resources: # adjust resource limits for this node
+        limits:
+          cpus: "0.5"
+          memory: "1024m"
+        reservations:
+          cpus: "0.25"
+          memory: "512m"
     networks:
-      - ${NETWORK_NAME}
+      elk:
+        ipv4_address: 192.168.32.4
     depends_on: # setup dependency
       - logstash
 
-  logstash: # log filter
+  logstash: # log-data processing pipeline
     image: "docker.elastic.co/logstash/logstash:${STACK_VERSION}"
     container_name: logstash-log-filter
     volumes:
-      - ../logstash/logstash-config.conf:/etc/logstash/conf.d/logstash.conf:ro,Z # 
-      - ../logstash/logstash.yml:/opt/config/logstash.yml:ro,Z #
+      - ../logstash/logstash-config.conf:/usr/share/logstash/pipeline/logstash.conf:ro,Z # 
+      - ../logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z #
+    deploy:
+      resources: # adjust resource limits for this node
+        limits:
+          cpus: "0.5"
+          memory: "1024m"
+        reservations:
+          cpus: "0.25"
+          memory: "512m"
     ports:
       - "${LOGSTASH_PORT}:${LOGSTASH_PORT}"
     networks:
-      - ${NETWORK_NAME}
+      elk:
+        ipv4_address: 192.168.32.5
     depends_on: # setup dependency
       - elasticsearch-hot
       - elasticsearch-warm
 
-volumes:
-    elasticsearch-hot_data:
-        driver: local
-    elasticsearch-warm_data:
-        driver: local
+  #log_spammer: # python log creator
+  #  image: library/python:3.10-alpine
+  #  container_name: log_spammer
+  #  volumes:
+  #    - ../python/script.py:/opt/run.py:Z
+  #  entrypoint: python3 /opt/run.py
+  #  networks:
+  #    elk:
+  #      ipv4_address: 192.168.32.7
 
+volumes:
+  elasticsearch-hot_data:
+    driver: local
+  elasticsearch-warm_data:
+    driver: local
+  kibana_data:
+    driver: local
+ 
 networks:
   elk:
     driver: bridge
+    ipam:
+      config:
+      - subnet: 192.168.32.0/28
+        gateway: 192.168.32.1

@@ -1,0 +1,18 @@
+## Default Kibana configuration from Kibana base image.
+## https://github.com/elastic/kibana/blob/main/src/dev/build/tasks/os_packages/docker_generator/templates/kibana_yml.template.ts
+#
+server.name: kibana
+server.host: 0.0.0.0
+elasticsearch.hosts: ["http://192.168.32.2:9200","http://192.168.32.3:9201"]
+#elasticsearch.username: "kibana_system"
+#elasticsearch.password: "1"
+
+monitoring.ui.container.elasticsearch.enabled: true
+monitoring.ui.container.logstash.enabled: true
+#xpack.security.enabled: false
+xpack.security.authc.http.enabled: true
+xpack.security.authc.http.schemes: ['apikey', 'bearer', 'basic']
+# generate custom password with min length 32
+#xpack.encryptedSavedObjects.encryptionKey: "RANDOM-PASSWORD-WAS-GENERATED-HERE"
+#xpack.reporting.encryptionKey: "RANDOM-PASSWORD-WAS-GENERATED-HERE"
+#xpack.security.encryptionKey: "RANDOM-PASSWORD-WAS-GENERATED-HERE"

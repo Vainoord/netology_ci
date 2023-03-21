@@ -1,26 +1,22 @@
----
 filebeat.inputs:
-- type: container
-  paths: 
-    - '/var/lib/docker/containers/*/*.log'
+  - type: container
+    paths: 
+      - '/var/lib/docker/containers/*/*.log'
+    scan_frequency: 30s
 
 processors:
-- add_docker_metadata:
-    host: "unix:///var/run/docker.sock"
+  - add_docker_metadata:
+      host: "unix:///var/run/docker.sock"
 
-- decode_json_fields:
-    fields: ["message"]
-    target: "json"
-    overwrite_keys: true
+  - decode_json_fields:
+      fields: ["message"]
+      target: "json"
+      overwrite_keys: true
 
-#output.elasticsearch:
-#  hosts: ["elasticsearch-hot-node:9200"]
-#  indices:
-#    - index: "filebeat-%{[agent.version]}-%{+yyyy.MM.dd}"
 output.logstash:
-  hosts: [logstash-log-filter:5046]
-  indices:
-    - index: "filebeat-%{[agent.version]}-%{+yyyy.MM.dd}"
+  hosts: ["192.168.32.5:5044"]
+  # indices:
+  #  - index: "filebeat-%{[@metadata][target_index]}-%{+YYYY.MM.dd}"
 
 logging.json: true
 logging.metrics.enabled: false

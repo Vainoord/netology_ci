@@ -58,6 +58,38 @@ Filebeat следует сконфигурировать для отправки
 - ваши yml-конфигурации для стека (если вы не использовали директорию 
 help).
 
+### Ответ
+
+Контейнеры созданы и связаны друг с другом:
+
+<details>
+<summary> Docker ps status</summary>
+<img src="assets/scr1.png"
+     alt=""
+     style="float: left; margin-right: 10px;" />
+</details>
+
+<details>
+<summary> Kibana interface</summary>
+<img src="assets/scr2.png"
+     alt=""
+     style="float: left; margin-right: 10px;" />
+<img src="assets/scr3.png"
+     alt=""
+     style="float: left; margin-right: 10px;" />
+</details>
+
+Для сервисов использована версия 7.17.9:\
+[Docker-compose](./docker/docker-compose.yml)\
+Для настройки сервисов использованы следующие yml конфигурации:\
+[Elasticsearch hot node](./elasticsearch/elasticsearch-hot.yml)\
+[Elasticsearch warm node](./elasticsearch/elasticsearch-warm.yml)\
+[Kibana](./kibana/kibana.yml)\
+[Filebeat](./filebeat/filebeat-config.yml)
+[Logstash](./logstash/logstash.yml)
+
+---
+
 ## Задание 2
 
 Перейдите в меню [создания index-patterns  в 
@@ -72,7 +104,28 @@ kibana](http://localhost:5601/app/management/kibana/indexPatterns/create)
 Эти логи должны порождать индекс logstash-* в elasticsearch. Если этого 
 индекса нет — воспользуйтесь советами и источниками из раздела 
 «Дополнительные ссылки» этого задания.
- 
+
+### Ответ 
+
+<details>
+<summary> Elasticsearch index list</summary>
+<img src="assets/scr4.png"
+     alt=""
+     style="float: left; margin-right: 10px;" />
+</details>
+
+<details>
+<summary> Kibana index management</summary>
+<img src="assets/scr5.png"
+     alt=""
+     style="float: left; margin-right: 10px;" />
+</details>
+<details>
+<summary> Kibana logs discover</summary>
+<img src="assets/scr6.png"
+     alt=""
+     style="float: left; margin-right: 10px;" />
+</details>
 ---
 
 ### Как оформить решение задания

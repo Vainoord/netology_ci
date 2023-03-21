@@ -1,0 +1,11 @@
+network.host: 0.0.0.0
+http.host: 192.168.32.2 # this ip (defined by docker network settings) address will be used for accepting http connections
+cluster.name: es-cluster
+node.name: elasticsearch-hot-node 
+xpack.license.self_generated.type: basic
+bootstrap.memory_lock: true
+discovery.seed_hosts: ['elasticsearch-hot-node','elasticsearch-warm-node']
+cluster.initial_master_nodes: ['elasticsearch-hot-node']
+http.port: 9200
+xpack.security.enabled: false
+node.roles: [ master, data_hot, data_content]
