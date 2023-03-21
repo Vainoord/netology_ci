@@ -129,16 +129,6 @@ services:
       - elasticsearch-hot
       - elasticsearch-warm
 
-  #log_spammer: # python log creator
-  #  image: library/python:3.10-alpine
-  #  container_name: log_spammer
-  #  volumes:
-  #    - ../python/script.py:/opt/run.py:Z
-  #  entrypoint: python3 /opt/run.py
-  #  networks:
-  #    elk:
-  #      ipv4_address: 192.168.32.7
-
 volumes:
   elasticsearch-hot_data:
     driver: local

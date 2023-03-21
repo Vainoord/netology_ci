@@ -10,5 +10,6 @@ terraform*
 # ignore infrastructure folder
 infrastructure
 
-
+# ignore python folder
+python*
 
