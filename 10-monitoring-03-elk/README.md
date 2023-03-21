@@ -85,7 +85,7 @@ help).
 [Elasticsearch hot node](./elasticsearch/elasticsearch-hot.yml)\
 [Elasticsearch warm node](./elasticsearch/elasticsearch-warm.yml)\
 [Kibana](./kibana/kibana.yml)\
-[Filebeat](./filebeat/filebeat-config.yml)
+[Filebeat](./filebeat/filebeat-config.yml)\
 [Logstash](./logstash/logstash.yml)
 
 ---
